@@ -1,0 +1,48 @@
+title: Teddy-Docs Bayreuth
+tagline: Teddybärkrankenhaus am Medizincampus Oberfranken
+# Erscheint bei Google unter dem Titel – max. ca. 155 Zeichen.
+description: "Teddybärkrankenhaus Bayreuth: Medizinstudierende nehmen Kindern spielerisch die Angst vor medizinischen Untersuchungen. Kostenfrei für Vorschulkinder und 1./2. Klassen."
+lang: de
+locale: de_DE
+logo: /assets/img/logo.png
+
+# Adresse der Seite. Bei eigener Domain z. B. url: "https://www.teddydocs-bayreuth.de" und baseurl: "".
+url: "https://sungsy.github.io"
+baseurl: "/teddydocswebsite"
+
+plugins:
+  - jekyll-seo-tag   # Titel, Beschreibung, Canonical, Vorschau für WhatsApp/Social Media, strukturierte Daten
+  - jekyll-sitemap   # erzeugt /sitemap.xml
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      image: /assets/img/logo.png
+
+buchung:
+  # Web-App-URL des Google Apps Scripts (endet auf /exec) – siehe README.md, Schritt 2.
+  apps_script_url: "https://script.google.com/macros/s/AKfycbxUV0RppTg3rVxMVOw8AEsyKiWqyGadNJNIYiRFwRRqhYb0btZK0Zhv1KQEy0QLNhMknQ/exec"
+
+  # Buchbare Wochentage: 1 = Montag … 5 = Freitag
+  wochentage: [5]
+
+  # Zeitfenster pro Tag. "id" und "name" müssen mit den Zeitfenstern im Apps Script übereinstimmen.
+  slots:
+    - id: frueh
+      name: "8:30–10:30 Uhr"
+    - id: spaet
+      name: "10:30–12:30 Uhr"
+
+  # Richtwert Kinder pro Termin (wird auf der Seite angezeigt).
+  kinder_pro_termin: 25
+
+  # Wie viele Tage im Voraus muss mindestens angefragt werden?
+  vorlauf_tage: 21
+
+  # Wie viele Monate in die Zukunft kann man anfragen?
+  monate_im_voraus: 6
+
+exclude:
+  - README.md
+  - apps-script

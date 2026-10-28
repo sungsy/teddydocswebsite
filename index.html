@@ -1,0 +1,341 @@
+---
+layout: default
+---
+<section class="held">
+  <div class="container held-inner">
+    <div class="held-text">
+      <p class="dachzeile">Teddybärkrankenhaus am Medizincampus Oberfranken</p>
+      <h1>Wenn der Teddy krank ist, kommen die Teddy&#8209;Docs.</h1>
+      <p class="lead">
+        Wir sind Medizinstudierende aus Bayreuth und laden Vorschulkinder sowie die 1. und 2. Klasse der Grundschule
+        in unsere Teddy-Klinik am Medizincampus Oberfranken beim Klinikum Bayreuth ein.
+        Hier werden Kuscheltiere zu Patient:innen – und die Kinder selbst zu kleinen Ärzt:innen.
+      </p>
+      <div class="knopf-reihe">
+        <a class="knopf knopf-gross" href="#termin">Termin anfragen</a>
+        <a class="knopf knopf-gross knopf-hell" href="#ablauf">So läuft’s ab</a>
+      </div>
+    </div>
+    <div class="held-bild">
+      <img src="{{ '/assets/img/logo.png' | relative_url }}" width="512" height="512"
+           alt="Logo: Teddybärkrankenhaus am Medizincampus Oberfranken">
+    </div>
+  </div>
+</section>
+
+<section id="ueber-uns" class="abschnitt">
+  <div class="container">
+    <h2>Was ist das Teddybärkrankenhaus?</h2>
+    <p class="abschnitt-intro">
+      Bauchweh, Fieber oder eine kleine Verletzung – und dann geht’s zum Arzt oder zur Ärztin. Damit dieser Besuch
+      weniger aufregend wird, können Kinder bei uns am Medizincampus Oberfranken beim Klinikum Bayreuth ausprobieren,
+      wie so ein Besuch abläuft: Nicht sie selbst sind die Patient:innen, sondern ihr krankes Kuscheltier.
+    </p>
+    <div class="karten">
+      <article class="karte">
+        <div class="karte-icon">{% include icon.html name="teddy" %}</div>
+        <h3>Angst nehmen</h3>
+        <p>Wer erst einmal den eigenen Teddy verarztet hat, geht viel entspannter zur nächsten Untersuchung.</p>
+      </article>
+      <article class="karte">
+        <div class="karte-icon">{% include icon.html name="stethoskop" %}</div>
+        <h3>Spielerisch lernen</h3>
+        <p>Gemeinsam legen wir Verbände an, probieren das Stethoskop aus und schauen uns die wichtigsten Organe an.</p>
+      </article>
+      <article class="karte">
+        <div class="karte-icon">{% include icon.html name="studium" %}</div>
+        <h3>Von Studierenden</h3>
+        <p>Die Teddy-Docs sind Medizinstudierende der FAU am Medizincampus Oberfranken. Wir engagieren uns ehrenamtlich –
+          in enger Zusammenarbeit mit der Kinderklinik Bayreuth.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="ablauf" class="abschnitt abschnitt-farbig">
+  <div class="container">
+    <h2>So läuft’s ab</h2>
+    <ol class="schritte">
+      <li>
+        <h3>Termin anfragen</h3>
+        <p>Sucht euch unten im Kalender einen freien Termin aus.</p>
+      </li>
+      <li>
+        <h3>Bestätigung abwarten</h3>
+        <p>Wir melden uns per E-Mail. Erst mit unserer Bestätigung ist der Termin fest gebucht.</p>
+      </li>
+      <li>
+        <h3>Kuscheltier einpacken</h3>
+        <p>Jedes Kind bringt seinen Teddy oder ein anderes Kuscheltier mit, dem es gerade „nicht so gut geht“.</p>
+      </li>
+      <li>
+        <h3>Ab in die Teddy-Klinik</h3>
+        <p>Bei uns am Medizincampus untersuchen und verarzten die Kinder gemeinsam mit uns ihre Kuscheltiere.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section id="termin" class="abschnitt">
+  <div class="container">
+    <h2>Termin anfragen</h2>
+    <p class="abschnitt-intro">
+      Wählt einen freien Termin aus und füllt das Formular aus. Eure Anfrage ist noch keine feste Buchung –
+      wir bestätigen sie per E-Mail.
+    </p>
+    <ul class="fakten">
+      <li>Freitags: {{ site.buchung.slots | map: "name" | join: " oder " }}</li>
+      <li>ca. {{ site.buchung.kinder_pro_termin }} Kinder pro Termin</li>
+      <li>Teilnahme kostenfrei</li>
+    </ul>
+
+    <div class="buchung">
+      <div class="kalender" id="kalender">
+        <div class="kalender-kopf">
+          <button type="button" class="kalender-pfeil" id="kalender-zurueck" aria-label="Vorheriger Monat">‹</button>
+          <h3 id="kalender-monat" aria-live="polite">&nbsp;</h3>
+          <button type="button" class="kalender-pfeil" id="kalender-weiter" aria-label="Nächster Monat">›</button>
+        </div>
+        <ul class="legende" aria-label="Legende">
+          <li><span class="punkt punkt-frei"></span>frei</li>
+          <li><span class="punkt punkt-angefragt"></span>angefragt</li>
+          <li><span class="punkt punkt-belegt"></span>belegt</li>
+        </ul>
+        <p class="kalender-hinweis" id="kalender-hinweis" role="status"></p>
+        <ul class="tage" id="kalender-tage"></ul>
+      </div>
+
+      <div class="formular-karte">
+        <form id="anfrage-form" class="formular">
+          <div class="auswahl" id="auswahl">
+            <span class="auswahl-label">Gewünschter Termin</span>
+            <p class="auswahl-text" id="gewaehlter-termin" tabindex="-1">Noch kein Termin gewählt – bitte im Kalender auswählen.</p>
+            <p class="feld-fehler" id="termin-fehler" hidden>Bitte wählt zuerst im Kalender einen Termin aus.</p>
+          </div>
+
+          <div class="feld">
+            <label for="f-einrichtung">Name der Einrichtung</label>
+            <input id="f-einrichtung" name="einrichtung" required autocomplete="organization" placeholder="z. B. Kita Sonnenschein">
+          </div>
+
+          <fieldset class="feld">
+            <legend>Gruppe</legend>
+            <div class="auswahlknoepfe">
+              <label><input type="radio" name="art" value="Vorschulgruppe" required> Vorschulgruppe (Kita)</label>
+              <label><input type="radio" name="art" value="1. Klasse"> 1. Klasse</label>
+              <label><input type="radio" name="art" value="2. Klasse"> 2. Klasse</label>
+              <label><input type="radio" name="art" value="Andere"> Andere</label>
+            </div>
+          </fieldset>
+
+          <div class="feld">
+            <label for="f-person">Ansprechperson</label>
+            <input id="f-person" name="ansprechperson" required autocomplete="name">
+          </div>
+
+          <div class="feld-reihe">
+            <div class="feld">
+              <label for="f-email">E-Mail</label>
+              <input id="f-email" name="email" type="email" required autocomplete="email">
+            </div>
+            <div class="feld">
+              <label for="f-telefon">Telefon <span class="optional">(optional)</span></label>
+              <input id="f-telefon" name="telefon" type="tel" autocomplete="tel">
+            </div>
+          </div>
+
+          <div class="feld feld-kurz">
+            <label for="f-kinder">Anzahl Kinder <span class="optional">(ca. {{ site.buchung.kinder_pro_termin }})</span></label>
+            <input id="f-kinder" name="kinder" type="number" min="1" max="99" inputmode="numeric" required>
+          </div>
+
+          <div class="feld">
+            <label for="f-nachricht">Nachricht <span class="optional">(optional)</span></label>
+            <textarea id="f-nachricht" name="nachricht" rows="3" placeholder="z. B. Ausweichtermine, Fragen oder Besonderheiten"></textarea>
+          </div>
+
+          <div class="honig" aria-hidden="true">
+            <label>Bitte leer lassen <input name="botcheck" tabindex="-1" autocomplete="off"></label>
+          </div>
+
+          <label class="einwilligung">
+            <input type="checkbox" name="datenschutz" required>
+            <span>Ich bin einverstanden, dass meine Angaben zur Bearbeitung der Anfrage gespeichert werden.
+              Mehr dazu in der <a href="{{ '/datenschutz/' | relative_url }}">Datenschutzerklärung</a>.</span>
+          </label>
+
+          <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+          <button type="submit" class="knopf knopf-gross knopf-breit" id="absenden">Anfrage senden</button>
+        </form>
+
+        <div class="danke" id="anfrage-danke" tabindex="-1" hidden>
+          <div class="danke-icon">{% include icon.html name="brief" %}</div>
+          <h3>Danke für eure Anfrage!</h3>
+          <p>Wir haben eure Anfrage für <strong id="danke-termin"></strong> erhalten und melden uns per E-Mail bei euch.</p>
+          <button type="button" class="knopf knopf-hell" id="neue-anfrage">Weitere Anfrage stellen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="fragen" class="abschnitt abschnitt-farbig">
+  <div class="container schmal">
+    <h2>Häufige Fragen</h2>
+    <div class="faq">
+      <details>
+        <summary>Für welche Kinder ist das Teddybärkrankenhaus gedacht?</summary>
+        <p>Für Vorschulkinder aus dem Kindergarten und für die 1. und 2. Klasse der Grundschule.</p>
+      </details>
+      <details>
+        <summary>Wann finden die Termine statt?</summary>
+        <p>Immer freitags – entweder von 8:30 bis 10:30 Uhr oder von 10:30 bis 12:30 Uhr.</p>
+      </details>
+      <details>
+        <summary>Wo findet die Teddy-Klinik statt?</summary>
+        <p>In den Lehrgebäuden des Medizincampus Oberfranken auf dem Klinikgelände in der Preuschwitzer Straße.
+          Dort bauen wir eine kindgerechte „Krankenhausumgebung“ auf. Den genauen Treffpunkt schicken wir euch mit der Terminbestätigung.</p>
+      </details>
+      <details>
+        <summary>Kostet die Teilnahme etwas?</summary>
+        <p>Nein, die Teilnahme ist für eure Einrichtung kostenfrei.</p>
+      </details>
+      <details>
+        <summary>Ist meine Anfrage schon eine feste Buchung?</summary>
+        <p>Nein. Der Termin wird erst fest, wenn wir ihn euch per E-Mail bestätigt haben.</p>
+      </details>
+      <details>
+        <summary>Was müssen die Kinder mitbringen?</summary>
+        <p>Ein Kuscheltier, das „krank“ ist – egal ob Teddy, Hase oder Dino.</p>
+      </details>
+      <details>
+        <summary>Wie viele Kinder können mitkommen?</summary>
+        <p>Pro Termin können wir ca. {{ site.buchung.kinder_pro_termin }} Kinder betreuen. Kleinere Gruppen sind natürlich genauso willkommen.
+          Bei größeren Gruppen meldet euch gerne über das Kontaktformular.</p>
+      </details>
+      <details>
+        <summary>Warum kann ich einen Termin nicht auswählen?</summary>
+        <p>Der Termin ist dann schon angefragt oder vergeben. Termine müssen außerdem mindestens
+          {% assign vorlauf = site.buchung.vorlauf_tage %}{% assign rest = vorlauf | modulo: 7 %}{% if rest == 0 %}{{ vorlauf | divided_by: 7 }} Wochen{% else %}{{ vorlauf }} Tage{% endif %} im Voraus angefragt werden.</p>
+      </details>
+      <details>
+        <summary>Es passt kein Termin – was nun?</summary>
+        <p>
+          Schreibt uns über das <a href="#kontakt">Kontaktformular</a> – oder fragt einen Termin an
+          und schreibt eure Wünsche ins Nachrichtenfeld. Wir melden uns dann bei euch.
+        </p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section id="mitmachen" class="abschnitt">
+  <div class="container">
+    <h2>Mitmachen &amp; unterstützen</h2>
+    <p class="abschnitt-intro">Das Teddybärkrankenhaus lebt vom Engagement vieler – im Team und von außen.</p>
+    <div class="karten karten-zwei">
+      <article class="karte karte-gross">
+        <div class="karte-icon">{% include icon.html name="pflaster" %}</div>
+        <h3>Für Studierende: Mach mit!</h3>
+        <p>Du studierst am Medizincampus Oberfranken und hast Lust, Kindern die Angst vor medizinischen Untersuchungen zu nehmen?
+          Dann werde Teil der Teddy-Docs.</p>
+        <ul class="haken-liste">
+          <li>Kuscheltiere untersuchen und verarzten</li>
+          <li>Kindern Medizin spielerisch erklären</li>
+          <li>Erfahrung im Umgang mit Kindern sammeln</li>
+        </ul>
+        <!-- TODO: ggf. Infos zu Treffen, Instagram o. Ä. ergänzen -->
+        <a class="knopf" href="#kontakt" data-anliegen="Mitmachen">Schreib uns</a>
+      </article>
+      <article class="karte karte-gross">
+        <div class="karte-icon">{% include icon.html name="herz" %}</div>
+        <h3>Sie möchten uns unterstützen?</h3>
+        <p>Für Verbandsmaterial, Pflaster und die Ausstattung unserer Teddy-Sprechstunde freuen wir uns über
+          Unterstützung – ob als Geld- oder Sachspende.</p>
+        <p>Ob als Verein, Unternehmen oder Privatperson – wenn Sie helfen möchten, melden Sie sich gerne bei uns.</p>
+        <a class="knopf" href="#kontakt" data-anliegen="Unterstützung">Kontakt aufnehmen</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="kontakt" class="abschnitt abschnitt-farbig">
+  <div class="container kontakt-raster">
+    <div>
+      <h2>Kontakt</h2>
+      <p class="abschnitt-intro">Ihr möchtet bei den Teddy-Docs mitmachen, uns unterstützen oder habt eine Frage?
+        Schreibt uns – wir antworten per E-Mail.</p>
+      <p class="kontakt-hinweis">Für Terminanfragen nutzt bitte den <a href="#termin">Kalender</a>.</p>
+    </div>
+    <div class="formular-karte">
+      <form id="kontakt-form" class="formular">
+        <fieldset class="feld">
+          <legend>Worum geht es?</legend>
+          <div class="auswahlknoepfe">
+            <label><input type="radio" name="anliegen" value="Mitmachen" required> Ich möchte mitmachen</label>
+            <label><input type="radio" name="anliegen" value="Unterstützung"> Ich möchte unterstützen</label>
+            <label><input type="radio" name="anliegen" value="Sonstiges"> Sonstiges</label>
+          </div>
+        </fieldset>
+
+        <div class="feld-reihe">
+          <div class="feld">
+            <label for="k-name">Name</label>
+            <input id="k-name" name="name" required autocomplete="name">
+          </div>
+          <div class="feld">
+            <label for="k-email">E-Mail</label>
+            <input id="k-email" name="email" type="email" required autocomplete="email">
+          </div>
+        </div>
+
+        <div class="feld">
+          <label for="k-nachricht">Nachricht</label>
+          <textarea id="k-nachricht" name="nachricht" rows="5" required></textarea>
+        </div>
+
+        <div class="honig" aria-hidden="true">
+          <label>Bitte leer lassen <input name="botcheck" tabindex="-1" autocomplete="off"></label>
+        </div>
+
+        <label class="einwilligung">
+          <input type="checkbox" name="datenschutz" required>
+          <span>Ich bin einverstanden, dass meine Angaben zur Beantwortung meiner Nachricht verwendet werden.
+            Mehr dazu in der <a href="{{ '/datenschutz/' | relative_url }}">Datenschutzerklärung</a>.</span>
+        </label>
+
+        <p class="form-status" id="kontakt-status" role="status" aria-live="polite"></p>
+        <button type="submit" class="knopf knopf-gross" id="kontakt-absenden">Nachricht senden</button>
+      </form>
+
+      <div class="danke" id="kontakt-danke" tabindex="-1" hidden>
+        <div class="danke-icon">{% include icon.html name="brief" %}</div>
+        <h3>Danke für die Nachricht!</h3>
+        <p>Wir melden uns so bald wie möglich per E-Mail.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": {{ site.title | jsonify }},
+  "alternateName": [{{ site.tagline | jsonify }}, "Teddy-Klinik Bayreuth"],
+  "description": {{ site.description | jsonify }},
+  "url": {{ '/' | absolute_url | jsonify }},
+  "logo": {{ site.logo | absolute_url | jsonify }},
+  "areaServed": { "@type": "City", "name": "Bayreuth" },
+  "parentOrganization": {
+    "@type": "CollegeOrUniversity",
+    "name": "Friedrich-Alexander-Universität Erlangen-Nürnberg"
+  }
+}
+</script>
+
+<script>
+  window.TEDDY_BUCHUNG = {{ site.buchung | jsonify }};
+</script>
+<script src="{{ '/assets/js/buchung.js' | relative_url }}" defer></script>
+<script src="{{ '/assets/js/kontakt.js' | relative_url }}" defer></script>

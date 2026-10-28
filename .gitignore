@@ -1,0 +1,15 @@
+# Jekyll
+_site/
+.jekyll-cache/
+.jekyll-metadata
+.sass-cache/
+
+# macOS
+.DS_Store
+
+# Das Repository ist öffentlich: Flyer, Briefe, Tabellen-Exporte o. Ä. nicht hier ablegen.
+# (Falls doch mal eine PDF auf die Webseite soll, diese Zeilen gezielt anpassen.)
+*.pdf
+*.docx
+*.xlsx
+*.csv
