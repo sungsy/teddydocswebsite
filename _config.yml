@@ -28,6 +28,9 @@ buchung:
   # Dieser Satz erscheint auf der Seite bei den Eckdaten über dem Kalender.
   zeiten_hinweis: "Meist freitags vormittags"
 
+  # Erscheint im Kalender, wenn gerade keine Termine angeboten werden.
+  keine_termine_text: "Unsere Teddy-Docs sind gerade selbst Patient:innen – Diagnose: akute Klausurenphase. Die Prognose ist aber gut: Bald gibt es hier wieder neue Termine. Bis dahin erreicht ihr uns über das Kontaktformular."
+
   # Richtwert Kinder pro Termin (wird auf der Seite angezeigt).
   kinder_pro_termin: 25
 

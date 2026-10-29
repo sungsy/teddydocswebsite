@@ -95,8 +95,8 @@
       }
       el.monat.textContent = 'Keine Termine';
       if (laden === 'ok') {
-        el.tage.append(neu('li', 'tage-leer',
-          'Aktuell sind keine Termine buchbar. Schreibt uns gerne über das Kontaktformular.'));
+        el.tage.append(neu('li', 'tage-leer', cfg.keine_termine_text
+          || 'Aktuell sind keine Termine buchbar. Schreibt uns gerne über das Kontaktformular.'));
       }
       return;
     }
