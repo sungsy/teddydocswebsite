@@ -48,7 +48,7 @@ Alles im **Gmail-Team-Konto** der Teddy-Docs machen – dann laufen Tabelle, Mai
 - **Farben:** ganz oben in `assets/css/style.css`.
 - **Termine:** werden nicht hier, sondern im Blatt **„Termine“** der Google-Tabelle gepflegt (siehe „Im Alltag“). Der Satz bei den Eckdaten über dem Kalender („Meist freitags vormittags“) steht in `_config.yml` unter `zeiten_hinweis`.
 - **Antwort-Vorlagen:** Treffpunkt und Grußformel stehen im Skript oben unter `treffpunkt` und `gruss`. Die Texte selbst in der Funktion `antwortVorlagen_`.
-- **Kinder pro Termin / Vorlauf:** `kinder_pro_termin` (Richtwert, aktuell ca. 25) und `vorlauf_tage` (aktuell 21 = 3 Wochen) in `_config.yml`.
+- **Kinder pro Termin / Vorlauf:** `kinder_pro_termin` (Richtwert, aktuell ca. 25) und `vorlauf_tage` (aktuell 7 = eine Woche) in `_config.yml`.
 - **Impressum & Datenschutz:** Platzhalter in `impressum.md` und `datenschutz.md` ausfüllen.
 
 ## Im Alltag

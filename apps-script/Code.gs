@@ -21,7 +21,7 @@ const EINSTELLUNGEN = {
   webseite: 'https://sungsy.github.io/teddydocswebsite/',
   // Für die Antwort-Vorlagen an die Einrichtungen:
   treffpunkt: 'Lehrgebäude des Medizincampus Oberfranken (MCO) auf dem Klinikgelände, Preuschwitzer Straße, Bayreuth',
-  gruss: 'Herzliche Grüße\nIhr Team der Teddy-Docs\nTeddybärkrankenhaus Bayreuth · Medizincampus Oberfranken (MCO)',
+  gruss: 'Herzliche Grüße\nEuer Team der Teddy-Docs\nTeddybärkrankenhaus Bayreuth · Medizincampus Oberfranken (MCO)',
   // Sind angefragte, noch nicht bestätigte Termine auf der Webseite schon gesperrt?
   angefragtSperrt: true,
   // Bei Bestätigung einen Termin im Google Kalender anlegen?
@@ -431,10 +431,10 @@ function antwortVorlagen_(z) {
   const termin = terminText_(z.datum, z.zeitfenster);
 
   const bestaetigung = [
-    `Guten Tag ${z.ansprechperson},`,
+    `Hallo ${z.ansprechperson},`,
     '',
-    'vielen Dank für Ihre Anfrage! Wir freuen uns sehr, Ihre Kinder bei uns im Teddybärkrankenhaus ' +
-      'begrüßen zu dürfen, und bestätigen Ihnen hiermit folgenden Termin:',
+    'vielen Dank für deine Anfrage! Wir freuen uns sehr, eure Kinder bei uns im Teddybärkrankenhaus ' +
+      'begrüßen zu dürfen, und bestätigen dir hiermit folgenden Termin:',
     '',
     `Termin: ${termin}`,
     `Gruppe: ${z.einrichtung} (${z.art}), ${z.kinder} Kinder`,
@@ -444,36 +444,35 @@ function antwortVorlagen_(z) {
       'Teddy-Docs ihre Kuscheltiere untersuchen und behandeln – und dabei selbst einmal in die Rolle von ' +
       'Ärzt:innen schlüpfen.',
     '',
-    'Bitte denken Sie daran: Jedes Kind bringt ein Kuscheltier mit, dem es gerade „nicht so gut geht“. ' +
-      'Die Teilnahme ist für Ihre Einrichtung selbstverständlich kostenfrei.',
+    'Bitte denk daran: Jedes Kind bringt ein Kuscheltier mit, dem es gerade „nicht so gut geht“. ' +
+      'Die Teilnahme ist für eure Einrichtung selbstverständlich kostenfrei.',
     '',
-    'Falls sich an der Gruppengröße etwas ändert oder Sie den Termin nicht wahrnehmen können, ' +
-      'geben Sie uns bitte kurz Bescheid – so können wir den Platz an eine andere Einrichtung weitergeben.',
+    'Falls sich an der Gruppengröße etwas ändert oder ihr den Termin nicht wahrnehmen könnt, ' +
+      'gib uns bitte kurz Bescheid – so können wir den Platz an eine andere Einrichtung weitergeben.',
     '',
-    'Bei Fragen stehen wir Ihnen jederzeit gerne zur Verfügung.',
+    'Bei Fragen sind wir jederzeit gerne für dich da.',
     '',
     EINSTELLUNGEN.gruss,
   ].join('\n');
 
   const absage = [
-    `Guten Tag ${z.ansprechperson},`,
+    `Hallo ${z.ansprechperson},`,
     '',
-    'vielen Dank für Ihre Anfrage und Ihr Interesse am Teddybärkrankenhaus Bayreuth!',
+    'vielen Dank für deine Anfrage und dein Interesse am Teddybärkrankenhaus Bayreuth!',
     '',
-    `Leider können wir Ihnen den gewünschten Termin (${termin}) nicht anbieten. ` +
-      'Da wir möglichst vielen Kindertagesstätten und Grundschulen eine Teilnahme ermöglichen möchten, ' +
-      'sind die Plätze leider begrenzt.',
+    `Leider können wir dir den gewünschten Termin (${termin}) nicht anbieten. ` +
+      'Da wir als Medizinstudierende die Tage ehrenamtlich gestalten, haben wir nur begrenzte Kapazitäten.',
     '',
     EINSTELLUNGEN.webseite
-      ? `Gerne können Sie über unsere Webseite einen anderen Termin anfragen: ${EINSTELLUNGEN.webseite}`
-      : 'Gerne können Sie einen anderen Termin anfragen – antworten Sie dazu einfach auf diese E-Mail.',
+      ? `Gerne kannst du über unsere Webseite einen anderen Termin anfragen: ${EINSTELLUNGEN.webseite}`
+      : 'Gerne kannst du einen anderen Termin anfragen – antworte dazu einfach auf diese E-Mail.',
     '',
     EINSTELLUNGEN.gruss,
   ].join('\n');
 
   return {
-    bestaetigt: { betreff: `Teddybärkrankenhaus Bayreuth: Ihr Termin am ${termin}`, text: bestaetigung },
-    abgelehnt: { betreff: `Teddybärkrankenhaus Bayreuth: Ihre Terminanfrage (${termin})`, text: absage },
+    bestaetigt: { betreff: `Teddybärkrankenhaus Bayreuth: Euer Termin am ${termin}`, text: bestaetigung },
+    abgelehnt: { betreff: `Teddybärkrankenhaus Bayreuth: Deine Terminanfrage (${termin})`, text: absage },
   };
 }
 

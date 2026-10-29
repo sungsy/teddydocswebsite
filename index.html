@@ -216,7 +216,7 @@ layout: default
       <details>
         <summary>Warum kann ich einen Termin nicht auswählen?</summary>
         <p>Der Termin ist dann schon angefragt oder vergeben. Termine müssen außerdem mindestens
-          {% assign vorlauf = site.buchung.vorlauf_tage %}{% assign rest = vorlauf | modulo: 7 %}{% if rest == 0 %}{{ vorlauf | divided_by: 7 }} Wochen{% else %}{{ vorlauf }} Tage{% endif %} im Voraus angefragt werden.</p>
+          {% assign vorlauf = site.buchung.vorlauf_tage %}{% assign rest = vorlauf | modulo: 7 %}{% if vorlauf == 7 %}eine Woche{% elsif rest == 0 %}{{ vorlauf | divided_by: 7 }} Wochen{% else %}{{ vorlauf }} Tage{% endif %} im Voraus angefragt werden.</p>
       </details>
       <details>
         <summary>Es passt kein Termin – was nun?</summary>
