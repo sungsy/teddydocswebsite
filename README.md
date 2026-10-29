@@ -73,6 +73,30 @@ Wer das nicht möchte, setzt im Skript `angefragtSperrt: false`.
 **Spamschutz:** Die E-Mail-Adresse steht nicht im Klartext auf der Seite. Beide Formulare haben ein unsichtbares Feld für Bots
 und verwerfen Einsendungen, die schneller als 3 Sekunden nach dem Laden der Seite abgeschickt werden.
 
+## Für später – daran denken
+
+**Noch offen**
+- **Datenschutzerklärung:** In `datenschutz.md` stehen noch Platzhalter (Rechtsgrundlage für die Übermittlung in die USA, Löschfrist). Ausfüllen und am besten von der Datenschutzbeauftragten der FAU prüfen lassen.
+- **Alte Anfragen löschen:** Die Datenschutzerklärung verspricht eine Löschfrist. Also regelmäßig, z. B. nach jedem Semester, alte Zeilen im Blatt „Anfragen“ löschen, ebenso die zugehörigen Mails und Entwürfe in Gmail.
+- **Klausurenphase vorbei?** Den Text `keine_termine_text` in `_config.yml` wieder anpassen.
+
+**Wenn die Seite eine eigene Domain bekommt** (z. B. `teddydocs-bayreuth.de`)
+1. `_config.yml`: `url: "https://www.teddydocs-bayreuth.de"` und `baseurl: ""`.
+2. GitHub → Settings → Pages → *Custom domain* eintragen, beim Domain-Anbieter die DNS-Einträge laut GitHub-Anleitung setzen, *Enforce HTTPS* anhaken. Alte `github.io`-Links leitet GitHub dann automatisch weiter.
+3. Im Skript `webseite:` auf die neue Adresse ändern und eine neue Version bereitstellen. Die Adresse steht in den Absage-Mails.
+4. **Google Search Console** (search.google.com/search-console): neue Domain als Property hinzufügen, bestätigen und unter *Sitemaps* `sitemap.xml` einreichen. Bei einer bisherigen Property zusätzlich *Adressänderung* nutzen.
+5. Erst mit eigener Domain wirkt auch `robots.txt`. Suchmaschinen lesen sie nur im Hauptverzeichnis der Domain, nicht unter `/teddydocswebsite/`.
+
+**Apps Script**
+- Nach jeder Code-Änderung **Bereitstellungen verwalten → Bearbeiten → Neue Version**, *nicht* „Neue Bereitstellung“. Eine neue Bereitstellung bekommt eine andere URL. Dann muss `apps_script_url` in `_config.yml` geändert werden, und die Bestätigen-/Ablehnen-Links in älteren Anfrage-Mails funktionieren nicht mehr, sobald die alte Bereitstellung archiviert wird.
+- Nutzt das Skript einen neuen Google-Dienst (z. B. Drive), muss man einmal im Editor eine Funktion ausführen (z. B. `einrichten`) und die neue Berechtigung zulassen. Sonst schlägt die Funktion fehl.
+- Prüfen, welche Version live ist: die Web-App-URL im Browser öffnen. Es sollte JSON mit `termine`, `belegt` und `angefragt` erscheinen.
+- Grenzen bei kostenlosen Gmail-Konten: ca. 100 Mails pro Tag über das Skript. Für Anfragen reicht das locker.
+
+**Übergabe an ein neues Team**
+- Tabelle, Skript, Kalender und Mails hängen alle am **Gmail-Team-Konto**. Bei einer Übergabe nur die Zugangsdaten zu diesem Konto und zum GitHub-Repository weitergeben. Keine Kopie der Tabelle anlegen, denn das Skript hängt an genau dieser Tabelle.
+- Wechselt das Konto doch einmal, muss die Einrichtung (Schritte 1–2) im neuen Konto wiederholt und `apps_script_url` angepasst werden.
+
 ## Lokal ansehen (optional)
 
 ```bash
