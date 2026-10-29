@@ -84,7 +84,7 @@ und verwerfen Einsendungen, die schneller als 3 Sekunden nach dem Laden der Seit
 1. `_config.yml`: `url: "https://www.teddydocs-bayreuth.de"` und `baseurl: ""`.
 2. GitHub → Settings → Pages → *Custom domain* eintragen, beim Domain-Anbieter die DNS-Einträge laut GitHub-Anleitung setzen, *Enforce HTTPS* anhaken. Alte `github.io`-Links leitet GitHub dann automatisch weiter.
 3. Im Skript `webseite:` auf die neue Adresse ändern und eine neue Version bereitstellen. Die Adresse steht in den Absage-Mails.
-4. **Google Search Console** (search.google.com/search-console): neue Domain als Property hinzufügen, bestätigen und unter *Sitemaps* `sitemap.xml` einreichen. Bei einer bisherigen Property zusätzlich *Adressänderung* nutzen.
+4. **Google Search Console** (search.google.com/search-console): neue Domain als Property hinzufügen, bestätigen und unter *Sitemaps* `sitemap.xml` einreichen. Die Weiterleitung von der alten `github.io`-Adresse übernimmt Google von selbst. Das Werkzeug *Adressänderung* geht für eine Adresse mit Unterordner ohnehin nicht.
 5. Erst mit eigener Domain wirkt auch `robots.txt`. Suchmaschinen lesen sie nur im Hauptverzeichnis der Domain, nicht unter `/teddydocswebsite/`.
 
 **Apps Script**
