@@ -1,10 +1,9 @@
-// Kalender und Anfrageformular. Einstellungen kommen aus _config.yml (window.TEDDY_BUCHUNG).
+// Kalender und Anfrageformular. Einstellungen kommen aus _config.yml (window.TEDDY_BUCHUNG),
+// die angebotenen Termine aus dem Blatt „Termine“ der Google-Tabelle (über das Apps Script).
 (() => {
   'use strict';
 
   const cfg = window.TEDDY_BUCHUNG || {};
-  const slots = cfg.slots || [];
-  const wochentage = (cfg.wochentage || [5]).map(Number);
   const url = cfg.apps_script_url || '';
 
   const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli',
@@ -33,38 +32,43 @@
   // ----- Datumshilfen -----
   const pad = (n) => String(n).padStart(2, '0');
   const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  const isoWochentag = (d) => d.getDay() || 7;
-  const terminText = (d, slot) =>
-    `${WOCHENTAGE[d.getDay()]}, ${d.getDate()}. ${MONATE[d.getMonth()]} ${d.getFullYear()} · ${slot.name}` +
-    (slot.zeit ? ` (${slot.zeit})` : '');
-
-  const heute = new Date();
-  heute.setHours(0, 0, 0, 0);
-  const erster = new Date(heute);
-  erster.setDate(erster.getDate() + Number(cfg.vorlauf_tage ?? 7));
-  const letzter = new Date(heute);
-  letzter.setMonth(letzter.getMonth() + Number(cfg.monate_im_voraus ?? 6));
-
-  const tageImMonat = (monat) => {
-    const tage = [];
-    const d = new Date(monat);
-    while (d.getMonth() === monat.getMonth()) {
-      if (d >= erster && d <= letzter && wochentage.includes(isoWochentag(d))) tage.push(new Date(d));
-      d.setDate(d.getDate() + 1);
-    }
-    return tage;
+  const ausIso = (s) => {
+    const [j, m, t] = s.split('-').map(Number);
+    return new Date(j, m - 1, t);
   };
+  const terminText = (d, slot) =>
+    `${WOCHENTAGE[d.getDay()]}, ${d.getDate()}. ${MONATE[d.getMonth()]} ${d.getFullYear()} · ${slot.name}`;
 
-  const monate = [];
-  for (const m = new Date(erster.getFullYear(), erster.getMonth(), 1); m <= letzter; m.setMonth(m.getMonth() + 1)) {
-    if (tageImMonat(m).length) monate.push(new Date(m));
-  }
+  const erster = new Date();
+  erster.setHours(0, 0, 0, 0);
+  erster.setDate(erster.getDate() + Number(cfg.vorlauf_tage ?? 7));
 
   // ----- Zustand -----
+  let termine = new Map(); // 'yyyy-mm-dd' → [{ id, name }], nur Tage ab Vorlauf
+  let monate = []; // erster Tag jedes Monats mit Terminen
+  let laden = 'laeuft'; // 'laeuft' | 'ok' | 'fehler'
   let belegt = new Set();
   let angefragt = new Set();
   let auswahl = null; // { datum: Date, slot }
   let monatIndex = 0;
+
+  const tageImMonat = (monat) => [...termine.keys()]
+    .map(ausIso)
+    .filter((d) => d.getFullYear() === monat.getFullYear() && d.getMonth() === monat.getMonth());
+
+  const termineSetzen = (liste) => {
+    termine = new Map();
+    for (const t of liste) {
+      if (ausIso(t.datum) < erster) continue;
+      if (!termine.has(t.datum)) termine.set(t.datum, []);
+      termine.get(t.datum).push({ id: t.id, name: t.name });
+    }
+    const schluessel = new Set([...termine.keys()].map((datum) => datum.slice(0, 7)));
+    monate = [...schluessel].sort().map((jm) => ausIso(`${jm}-01`));
+    monatIndex = Math.min(monatIndex, Math.max(0, monate.length - 1));
+  };
+
+  const angeboten = (datum, slotId) => (termine.get(datum) || []).some((s) => s.id === slotId);
 
   const slotStatus = (datum, slotId) => {
     const keys = [`${datum}-${slotId}`, `${datum}-ganztag`];
@@ -84,9 +88,16 @@
   const render = () => {
     el.tage.replaceChildren();
     if (!monate.length) {
-      el.monat.textContent = 'Keine Termine';
       el.zurueck.disabled = el.weiter.disabled = true;
-      el.tage.append(neu('li', 'tage-leer', 'Aktuell sind keine Termine buchbar.'));
+      if (laden === 'laeuft') {
+        el.monat.textContent = 'Termine';
+        return;
+      }
+      el.monat.textContent = 'Keine Termine';
+      if (laden === 'ok') {
+        el.tage.append(neu('li', 'tage-leer',
+          'Aktuell sind keine Termine buchbar. Schreibt uns gerne über das Kontaktformular.'));
+      }
       return;
     }
     const monat = monate[monatIndex];
@@ -101,7 +112,7 @@
       kopf.append(neu('span', 'tag-wochentag', WOCHENTAGE[d.getDay()]), neu('span', 'tag-nr', `${d.getDate()}. ${MONATE[d.getMonth()]}`));
 
       const reihe = neu('div', 'tag-slots');
-      for (const slot of slots) {
+      for (const slot of termine.get(datum)) {
         const status = slotStatus(datum, slot.id);
         const gewaehlt = auswahl && iso(auswahl.datum) === datum && auswahl.slot.id === slot.id;
         const knopf = neu('button', `slot slot-${status}${gewaehlt ? ' slot-gewaehlt' : ''}`);
@@ -110,7 +121,6 @@
         knopf.setAttribute('aria-pressed', String(Boolean(gewaehlt)));
         knopf.setAttribute('aria-label', `${terminText(d, slot)}: ${STATUS_TEXT[status]}`);
         knopf.append(neu('span', 'slot-name', slot.name));
-        if (slot.zeit) knopf.append(neu('span', 'slot-zeit', slot.zeit));
         knopf.append(neu('span', 'slot-status', gewaehlt ? 'ausgewählt' : STATUS_TEXT[status]));
         knopf.addEventListener('click', () => waehlen(d, slot));
         reihe.append(knopf);
@@ -142,22 +152,27 @@
   el.zurueck.addEventListener('click', () => { monatIndex = Math.max(0, monatIndex - 1); render(); });
   el.weiter.addEventListener('click', () => { monatIndex = Math.min(monate.length - 1, monatIndex + 1); render(); });
 
-  const belegungLaden = async () => {
-    if (!url) return;
-    el.hinweis.textContent = 'Belegung wird geladen …';
+  const termineLaden = async () => {
+    el.hinweis.textContent = 'Termine werden geladen …';
     try {
+      if (!url) throw new Error('apps_script_url fehlt in _config.yml');
       const antwort = await fetch(url, { cache: 'no-store' });
       const daten = await antwort.json();
+      termineSetzen(daten.termine || []);
       belegt = new Set(daten.belegt || []);
       angefragt = new Set(daten.angefragt || []);
+      laden = 'ok';
       el.hinweis.textContent = '';
-      if (auswahl && slotStatus(iso(auswahl.datum), auswahl.slot.id) !== 'frei') {
+      const datum = auswahl && iso(auswahl.datum);
+      if (auswahl && (!angeboten(datum, auswahl.slot.id) || slotStatus(datum, auswahl.slot.id) !== 'frei')) {
         auswahl = null;
         zeigeAuswahl();
       }
     } catch (err) {
       console.error(err);
-      el.hinweis.textContent = 'Die aktuelle Belegung konnte nicht geladen werden. Ihr könnt trotzdem anfragen – wir melden uns.';
+      laden = 'fehler';
+      el.hinweis.textContent = 'Die Termine konnten nicht geladen werden. Bitte ladet die Seite neu ' +
+        'oder schreibt uns über das Kontaktformular.';
     }
     render();
   };
@@ -210,12 +225,14 @@
         el.form.hidden = true;
         el.danke.hidden = false;
         el.danke.focus();
-      } else if (ergebnis.fehler === 'vergeben') {
-        el.status.textContent = 'Dieser Termin wurde gerade schon angefragt. Bitte wählt einen anderen.';
+      } else if (ergebnis.fehler === 'vergeben' || ergebnis.fehler === 'nicht_angeboten') {
+        el.status.textContent = ergebnis.fehler === 'vergeben'
+          ? 'Dieser Termin wurde gerade schon angefragt. Bitte wählt einen anderen.'
+          : 'Dieser Termin wird leider nicht mehr angeboten. Bitte wählt einen anderen.';
         el.status.classList.add('form-status-fehler');
         auswahl = null;
         zeigeAuswahl();
-        await belegungLaden();
+        await termineLaden();
       } else {
         throw new Error(ergebnis.fehler || 'unbekannt');
       }
@@ -237,5 +254,5 @@
 
   render();
   zeigeAuswahl();
-  belegungLaden();
+  termineLaden();
 })();

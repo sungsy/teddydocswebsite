@@ -3,7 +3,7 @@
  *
  * Dieses Skript gehört in eine Google-Tabelle (Erweiterungen → Apps Script)
  * und wird als Web-App bereitgestellt. Es
- *   - liefert der Webseite die belegten Termine (GET),
+ *   - liefert der Webseite die angebotenen (Blatt „Termine“) und belegten Termine (GET),
  *   - nimmt Anfragen entgegen, speichert sie in der Tabelle und schickt eine Mail (POST),
  *   - bestätigt oder lehnt Anfragen über die Links in der Mail ab,
  *   - leitet Nachrichten aus dem Kontaktformular per Mail weiter.
@@ -26,14 +26,11 @@ const EINSTELLUNGEN = {
   angefragtSperrt: true,
   // Bei Bestätigung einen Termin im Google Kalender anlegen?
   kalenderEintrag: true,
-  // Muss zu den "slots" in _config.yml passen (gleiche id und gleicher name).
-  // "name" steht so in der Tabelle, "von"/"bis" gelten für den Kalendereintrag.
-  zeitfenster: {
-    frueh: { name: '8:30–10:30 Uhr', von: '08:30', bis: '10:30' },
-    spaet: { name: '10:30–12:30 Uhr', von: '10:30', bis: '12:30' },
-  },
 };
 
+// Angebotene Termine: eine Zeile pro Zeitfenster (Datum, Von, Bis). Nur diese sind auf der Webseite wählbar.
+const BLATT_TERMINE = 'Termine';
+const TERMIN_SPALTEN = ['Datum', 'Von', 'Bis'];
 const BLATT = 'Anfragen';
 const SPALTEN = ['Eingang', 'Termin', 'Zeitfenster', 'Status', 'Einrichtung', 'Art', 'Ansprechperson',
   'E-Mail', 'Telefon', 'Kinder', 'Nachricht', 'ID', 'Schlüssel'];
@@ -45,7 +42,7 @@ const ANLIEGEN = ['Mitmachen', 'Unterstützung', 'Sonstiges'];
 const MIN_AUSFUELLZEIT_MS = 3000;
 const WOCHENTAGE = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
-/** Einmal im Editor ausführen: legt Kopfzeile, Auswahllisten und Formate an. */
+/** Einmal im Editor ausführen: legt die Blätter mit Kopfzeile, Auswahllisten und Formaten an. */
 function einrichten() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   ss.setSpreadsheetTimeZone(EINSTELLUNGEN.zeitzone);
@@ -57,10 +54,18 @@ function einrichten() {
   const liste = (werte) => SpreadsheetApp.newDataValidation().requireValueInList(werte, true).setAllowInvalid(false).build();
   blatt.getRange(2, 1, zeilen, 1).setNumberFormat('dd.MM.yyyy HH:mm');
   blatt.getRange(2, 2, zeilen, 1).setNumberFormat('dd.MM.yyyy');
-  const fensterNamen = Object.values(EINSTELLUNGEN.zeitfenster).map((f) => f.name);
-  blatt.getRange(2, 3, zeilen, 1).setDataValidation(liste(fensterNamen.concat(GANZTAG_NAME)));
+  // Zeitfenster sind frei wählbar ("9:00–11:00 Uhr", "ganztägig" …), daher keine Auswahlliste.
+  blatt.getRange(2, 3, zeilen, 1).clearDataValidations();
   blatt.getRange(2, 4, zeilen, 1).setDataValidation(liste(Object.values(STATUS)));
   blatt.hideColumns(12, 2);
+
+  const termine = ss.getSheetByName(BLATT_TERMINE) || ss.insertSheet(BLATT_TERMINE, 1);
+  termine.getRange(1, 1, 1, TERMIN_SPALTEN.length).setValues([TERMIN_SPALTEN]).setFontWeight('bold');
+  termine.setFrozenRows(1);
+  const terminZeilen = termine.getMaxRows() - 1;
+  termine.getRange(2, 1, terminZeilen, 1).setNumberFormat('dd.MM.yyyy')
+    .setDataValidation(SpreadsheetApp.newDataValidation().requireDate().setAllowInvalid(false).build());
+  termine.getRange(2, 2, terminZeilen, 2).setNumberFormat('HH:mm');
 }
 
 // ===== Web-App =====
@@ -68,7 +73,7 @@ function einrichten() {
 function doGet(e) {
   const p = (e && e.parameter) || {};
   if (p.id) return aktionsSeite_(p);
-  return json_(belegung_());
+  return json_(Object.assign({ termine: termine_() }, belegung_()));
 }
 
 function doPost(e) {
@@ -90,7 +95,8 @@ function doPost(e) {
       nachricht: text_(d.nachricht, 2000),
     };
     const pflicht = ['einrichtung', 'art', 'ansprechperson', 'email', 'kinder'];
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(anfrage.datum) || !EINSTELLUNGEN.zeitfenster[anfrage.zeitfenster]
+    const slot = slotAusId_(anfrage.zeitfenster);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(anfrage.datum) || !slot
       || pflicht.some((k) => !anfrage[k]) || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(anfrage.email)) {
       return json_({ ok: false, fehler: 'ungueltig' });
     }
@@ -98,6 +104,9 @@ function doPost(e) {
     const lock = LockService.getScriptLock();
     lock.waitLock(15000);
     try {
+      if (!termine_().some((t) => t.datum === anfrage.datum && t.id === slot.id)) {
+        return json_({ ok: false, fehler: 'nicht_angeboten' });
+      }
       if (istVergeben_(anfrage.datum, anfrage.zeitfenster, EINSTELLUNGEN.angefragtSperrt)) {
         return json_({ ok: false, fehler: 'vergeben' });
       }
@@ -107,7 +116,7 @@ function doPost(e) {
       blatt.getRange(blatt.getLastRow() + 1, 1, 1, SPALTEN.length).setValues([[
         new Date(),
         Utilities.parseDate(anfrage.datum, EINSTELLUNGEN.zeitzone, 'yyyy-MM-dd'),
-        EINSTELLUNGEN.zeitfenster[anfrage.zeitfenster].name,
+        slot.name,
         STATUS.ANGEFRAGT,
         zelle_(anfrage.einrichtung),
         zelle_(anfrage.art),
@@ -161,19 +170,51 @@ function aktionAusfuehren(id, schluessel, aktion) {
   }
 }
 
-/** Wird von der Bestätigungsseite aufgerufen: schickt die (ggf. bearbeitete) Antwort an die Einrichtung. */
-function antwortSenden(id, schluessel, betreff, text) {
-  const z = zeileFinden_(id, schluessel);
-  if (!z) return { ok: false, meldung: 'Diese Anfrage wurde nicht gefunden.' };
-  if (z.status !== STATUS.BESTAETIGT && z.status !== STATUS.ABGELEHNT) {
-    return { ok: false, meldung: 'Bitte die Anfrage zuerst bestätigen oder ablehnen.' };
+/**
+ * Wird von der Bestätigungsseite aufgerufen: legt die Antwort an die Einrichtung als Gmail-Entwurf an
+ * und gibt den Link zurück, der den Entwurf in Gmail öffnet.
+ */
+function entwurfErstellen(id, schluessel) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const z = zeileFinden_(id, schluessel);
+    if (!z) return { ok: false, meldung: 'Diese Anfrage wurde nicht gefunden.' };
+    if (z.status !== STATUS.BESTAETIGT && z.status !== STATUS.ABGELEHNT) {
+      return { ok: false, meldung: 'Bitte die Anfrage zuerst bestätigen oder ablehnen.' };
+    }
+    // Pro Anfrage und Status nur ein Entwurf: solange er noch in Gmail liegt, wird er wiederverwendet.
+    const props = PropertiesService.getScriptProperties();
+    const key = `entwurf_${z.id}_${z.status}`;
+    const vorhanden = vorhandenerEntwurf_(props.getProperty(key));
+    const entwurf = vorhanden || neuerEntwurf_(z);
+    props.setProperty(key, entwurf.getId());
+    // authuser sorgt dafür, dass Gmail im richtigen Konto aufgeht, wenn mehrere angemeldet sind.
+    const konto = encodeURIComponent(Session.getEffectiveUser().getEmail());
+    const url = `https://mail.google.com/mail/?authuser=${konto}#drafts?compose=${entwurf.getMessage().getId()}`;
+    return { ok: true, an: String(z.email), url, neu: !vorhanden };
+  } finally {
+    lock.releaseLock();
   }
-  const b = text_(betreff, 200);
-  const t = text_(text, 10000);
-  if (!b || !t) return { ok: false, meldung: 'Betreff und Text dürfen nicht leer sein.' };
+}
+
+/** Entwurf zur gespeicherten ID – oder null, wenn er inzwischen gesendet oder gelöscht wurde. */
+function vorhandenerEntwurf_(entwurfId) {
+  if (!entwurfId) return null;
+  try {
+    return GmailApp.getDraft(entwurfId) || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function neuerEntwurf_(z) {
+  const v = antwortVorlagen_(z)[z.status === STATUS.BESTAETIGT ? 'bestaetigt' : 'abgelehnt'];
   // Empfänger kommt aus der Tabelle, nicht von der Seite – so kann niemand beliebige Adressen anschreiben.
-  MailApp.sendEmail({ to: String(z.email), subject: b, body: t, name: 'Teddy-Docs Bayreuth' });
-  return { ok: true, an: String(z.email) };
+  return GmailApp.createDraft(String(z.email), v.betreff, v.text, {
+    name: 'Teddy-Docs Bayreuth',
+    htmlBody: `<div>${esc_(v.text).replace(/\n/g, '<br>')}</div>`,
+  });
 }
 
 // ===== Daten =====
@@ -205,13 +246,57 @@ function zeilen_() {
   })).filter((z) => z.datum && z.zeitfenster);
 }
 
-/** Zeitfenster aus der Tabelle ("8:30–10:30 Uhr", "ganztägig" …) → id aus EINSTELLUNGEN.zeitfenster. */
+/** Angebotene Termine ab heute aus dem Blatt „Termine“, sortiert: [{ datum, id, name }]. */
+function termine_() {
+  const blatt = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BLATT_TERMINE);
+  if (!blatt || blatt.getLastRow() < 2) return [];
+  const bereich = blatt.getRange(2, 1, blatt.getLastRow() - 1, TERMIN_SPALTEN.length);
+  // Uhrzeiten als angezeigter Text lesen – Zeitwerte der Tabelle hängen am Jahr 1899 und
+  // würden mit der damaligen Zeitzonenverschiebung umgerechnet.
+  const anzeige = bereich.getDisplayValues();
+  const heute = Utilities.formatDate(new Date(), EINSTELLUNGEN.zeitzone, 'yyyy-MM-dd');
+  const gesehen = new Set();
+  return bereich.getValues()
+    .map((r, i) => ({ datum: datumText_(r[0]), slot: slot_(anzeige[i][1], anzeige[i][2]) }))
+    .filter((t) => t.datum >= heute && t.slot && !gesehen.has(t.datum + t.slot.id) && gesehen.add(t.datum + t.slot.id))
+    .sort((a, b) => (a.datum + a.slot.id).localeCompare(b.datum + b.slot.id))
+    .map((t) => ({ datum: t.datum, id: t.slot.id, name: t.slot.name }));
+}
+
+/** Uhrzeit wie "8:30", "08:30", "8.30" oder "9" → { h, m } – oder null. */
+function uhrzeit_(wert) {
+  const m = String(wert).trim().match(/^(\d{1,2})(?:[:.](\d{2}))?(?!\d)/);
+  if (!m || Number(m[1]) > 23 || Number(m[2] || 0) > 59) return null;
+  return { h: Number(m[1]), m: Number(m[2] || 0) };
+}
+
+/** Zeitfenster aus Von/Bis: id "0830-1030" (für Webseite und Tabelle), name "8:30–10:30 Uhr", von/bis "08:30". */
+function slot_(von, bis) {
+  const a = uhrzeit_(von);
+  const b = uhrzeit_(bis);
+  if (!a || !b) return null;
+  const p = (n) => String(n).padStart(2, '0');
+  return {
+    id: `${p(a.h)}${p(a.m)}-${p(b.h)}${p(b.m)}`,
+    name: `${a.h}:${p(a.m)}–${b.h}:${p(b.m)} Uhr`,
+    von: `${p(a.h)}:${p(a.m)}`,
+    bis: `${p(b.h)}:${p(b.m)}`,
+  };
+}
+
+function slotAusId_(id) {
+  const m = String(id).match(/^(\d{2})(\d{2})-(\d{2})(\d{2})$/);
+  return m ? slot_(`${m[1]}:${m[2]}`, `${m[3]}:${m[4]}`) : null;
+}
+
+/** Zeitfenster aus der Tabelle ("8:30–10:30 Uhr", "ganztägig" …) → id ("0830-1030" bzw. "ganztag"). */
 function slotId_(wert) {
   const s = String(wert).trim().toLowerCase();
   if (!s) return '';
   if (s === GANZTAG || s === GANZTAG_NAME) return GANZTAG;
-  const fenster = EINSTELLUNGEN.zeitfenster;
-  return Object.keys(fenster).find((id) => id === s || fenster[id].name.toLowerCase() === s) || s;
+  const m = s.match(/^(\d{1,2}(?:[:.]\d{2})?)\s*[–—-]\s*(\d{1,2}(?:[:.]\d{2})?)/);
+  const slot = m && slot_(m[1], m[2]);
+  return slot ? slot.id : s;
 }
 
 function belegung_() {
@@ -237,7 +322,7 @@ function zeileFinden_(id, schluessel) {
 }
 
 function kalenderEintragen_(z) {
-  const fenster = EINSTELLUNGEN.zeitfenster[z.zeitfenster];
+  const fenster = slotAusId_(z.zeitfenster);
   if (!fenster) return;
   const tz = EINSTELLUNGEN.zeitzone;
   const start = Utilities.parseDate(`${z.datum} ${fenster.von}`, tz, 'yyyy-MM-dd HH:mm');
@@ -335,14 +420,13 @@ function aktionsSeite_(p) {
   vorlage.idJson = jsonSicher_(String(p.id || ''));
   vorlage.sJson = jsonSicher_(String(p.s || ''));
   vorlage.aktionJson = jsonSicher_(aktion);
-  vorlage.vorlagenJson = jsonSicher_(z ? antwortVorlagen_(z) : {});
   vorlage.statusJson = jsonSicher_(z ? z.status : '');
   return vorlage.evaluate()
     .setTitle('Teddy-Docs – Anfrage')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
-/** Antwort-Mails an die Einrichtung – werden auf der Bestätigungsseite zum Bearbeiten angezeigt. */
+/** Antwort-Mails an die Einrichtung – landen als Entwurf in Gmail und werden dort bei Bedarf angepasst. */
 function antwortVorlagen_(z) {
   const termin = terminText_(z.datum, z.zeitfenster);
 
@@ -400,13 +484,11 @@ const SEITE_HTML = `<!doctype html>
   .karte{max-width:600px;margin:0 auto;background:#fff;border-radius:20px;padding:24px;box-shadow:0 6px 24px rgba(61,40,23,.1)}
   h1{font-size:22px;margin:0 0 16px} h2{font-size:18px;margin:28px 0 4px}
   dl{margin:0 0 20px} dt{color:#6e5443;font-size:13px;margin-top:10px} dd{margin:2px 0 0}
-  button{font:inherit;font-weight:700;border:0;border-radius:999px;padding:12px 22px;cursor:pointer;color:#fff;margin:12px 8px 0 0}
-  button.gruen{background:#3f9a6b} button.rot{background:#b3332c} button.hell{background:#ffeedf;color:#3d2817}
+  [hidden]{display:none!important}
+  button,a.knopf{display:inline-block;font:inherit;font-weight:700;border:0;border-radius:999px;padding:12px 22px;
+    cursor:pointer;color:#fff;margin:12px 8px 0 0;text-decoration:none}
+  button.gruen,a.gruen{background:#3f9a6b} button.rot{background:#b3332c}
   button:disabled{opacity:.6;cursor:wait}
-  label{display:block;font-size:13px;color:#6e5443;margin-top:14px}
-  input,textarea{display:block;width:100%;box-sizing:border-box;font:inherit;font-size:15px;color:#3d2817;
-    padding:10px 12px;margin-top:4px;border:2px solid #f3dccb;border-radius:12px}
-  textarea{resize:vertical;line-height:1.5}
   .hinweis{color:#6e5443;font-size:14px;margin:0} .meldung{font-weight:600;margin:16px 0 0}
 </style></head><body><div class="karte">
 <? if (!z) { ?>
@@ -429,29 +511,41 @@ const SEITE_HTML = `<!doctype html>
 
   <div id="antwort" hidden>
     <h2>Mail an die Einrichtung</h2>
-    <p class="hinweis">An: <?= z.email ?> – bei Bedarf anpassen und dann senden.</p>
-    <label>Betreff<input id="betreff"></label>
-    <label>Text<textarea id="text" rows="18"></textarea></label>
-    <button id="senden" class="gruen">Mail senden</button>
-    <button id="ohne" class="hell">Nicht senden</button>
+    <p class="hinweis">An: <?= z.email ?> – die fertige Antwort wird als Entwurf in Gmail angelegt.
+      Dort Text, Anhänge oder CC anpassen und senden. Nicht abgeschickt bleibt sie unter „Entwürfe“.</p>
+    <button id="entwurf" class="gruen">✉ Mail-Entwurf erstellen</button>
+    <a id="oeffnen" class="knopf gruen" target="_blank" rel="noopener" hidden>✉ Mail in Gmail öffnen</a>
     <p class="meldung" id="antwort-meldung"></p>
   </div>
 
   <script>
-    var vorlagen = <?!= vorlagenJson ?>;
     var id = <?!= idJson ?>, s = <?!= sJson ?>;
     var $ = function (x) { return document.getElementById(x); };
 
-    function antwortZeigen(status) {
-      var v = vorlagen[status === 'bestätigt' ? 'bestaetigt' : 'abgelehnt'];
-      $('betreff').value = v.betreff;
-      $('text').value = v.text;
-      $('antwort').hidden = false;
+    function entwurfAnlegen() {
+      var knopf = $('entwurf');
+      var zurueck = function (text) {
+        $('antwort-meldung').textContent = text;
+        knopf.disabled = false; knopf.textContent = '✉ Mail-Entwurf erstellen';
+      };
+      knopf.disabled = true; knopf.textContent = 'Entwurf wird angelegt …';
+      google.script.run
+        .withSuccessHandler(function (r) {
+          if (!r.ok) return zurueck(r.meldung);
+          knopf.hidden = true;
+          $('oeffnen').href = r.url;
+          $('oeffnen').hidden = false;
+          $('antwort-meldung').textContent = (r.neu ? '✓ Entwurf an ' : '✓ Der Entwurf an ') + r.an
+            + (r.neu ? ' liegt in Gmail unter „Entwürfe“.' : ' liegt schon in Gmail unter „Entwürfe“.');
+        })
+        .withFailureHandler(function (e) { zurueck('Fehler: ' + e.message); })
+        .entwurfErstellen(id, s);
     }
+    $('entwurf').addEventListener('click', entwurfAnlegen);
 
-    // Bereits bearbeitete Anfrage (Link erneut geöffnet): Mail direkt anbieten.
+    // Bereits bearbeitete Anfrage (Link erneut geöffnet): Entwurf nur auf Klick anlegen, damit keine Doppelten entstehen.
     var status = <?!= statusJson ?>;
-    if (status === 'bestätigt' || status === 'abgelehnt') antwortZeigen(status);
+    if (status === 'bestätigt' || status === 'abgelehnt') $('antwort').hidden = false;
 
     var los = $('los');
     if (los) los.addEventListener('click', function () {
@@ -464,7 +558,8 @@ const SEITE_HTML = `<!doctype html>
           $('meldung').textContent = r.status === 'bestätigt'
             ? 'Erledigt! Der Termin ist jetzt auf der Webseite belegt.'
             : 'Erledigt! Die Anfrage ist abgelehnt, der Termin ist wieder frei.';
-          antwortZeigen(r.status);
+          $('antwort').hidden = false;
+          entwurfAnlegen();
         })
         .withFailureHandler(function (e) {
           $('meldung').textContent = 'Fehler: ' + e.message;
@@ -472,28 +567,6 @@ const SEITE_HTML = `<!doctype html>
         })
         .aktionAusfuehren(id, s, <?!= aktionJson ?>);
     });
-
-    $('senden').addEventListener('click', function () {
-      var knopf = $('senden');
-      knopf.disabled = true; knopf.textContent = 'Wird gesendet …';
-      google.script.run
-        .withSuccessHandler(function (r) {
-          if (!r.ok) {
-            $('antwort-meldung').textContent = r.meldung;
-            knopf.disabled = false; knopf.textContent = 'Mail senden';
-            return;
-          }
-          $('antwort').innerHTML = '<p class="meldung" id="gesendet"></p>';
-          $('gesendet').textContent = '✓ Mail an ' + r.an + ' wurde gesendet.';
-        })
-        .withFailureHandler(function (e) {
-          $('antwort-meldung').textContent = 'Fehler: ' + e.message;
-          knopf.disabled = false; knopf.textContent = 'Mail senden';
-        })
-        .antwortSenden(id, s, $('betreff').value, $('text').value);
-    });
-
-    $('ohne').addEventListener('click', function () { $('antwort').hidden = true; });
   </script>
 <? } ?>
 </div></body></html>`;
@@ -534,7 +607,7 @@ function datumText_(wert) {
 function terminText_(datum, zeitfenster) {
   const [j, m, t] = datum.split('-').map(Number);
   const wochentag = WOCHENTAGE[new Date(Date.UTC(j, m - 1, t)).getUTCDay()];
-  const fenster = EINSTELLUNGEN.zeitfenster[zeitfenster];
+  const fenster = slotAusId_(zeitfenster);
   const name = fenster ? fenster.name : zeitfenster === GANZTAG ? GANZTAG_NAME : zeitfenster;
   return `${wochentag}, ${String(t).padStart(2, '0')}.${String(m).padStart(2, '0')}.${j}, ${name}`;
 }

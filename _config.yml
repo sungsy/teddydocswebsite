@@ -24,24 +24,15 @@ buchung:
   # Web-App-URL des Google Apps Scripts (endet auf /exec) – siehe README.md, Schritt 2.
   apps_script_url: "https://script.google.com/macros/s/AKfycbxUV0RppTg3rVxMVOw8AEsyKiWqyGadNJNIYiRFwRRqhYb0btZK0Zhv1KQEy0QLNhMknQ/exec"
 
-  # Buchbare Wochentage: 1 = Montag … 5 = Freitag
-  wochentage: [5]
-
-  # Zeitfenster pro Tag. "id" und "name" müssen mit den Zeitfenstern im Apps Script übereinstimmen.
-  slots:
-    - id: frueh
-      name: "8:30–10:30 Uhr"
-    - id: spaet
-      name: "10:30–12:30 Uhr"
+  # Die buchbaren Termine (Datum + Uhrzeit) stehen im Blatt „Termine“ der Google-Tabelle – siehe README.md.
+  # Dieser Satz erscheint auf der Seite bei den Eckdaten über dem Kalender.
+  zeiten_hinweis: "Meist freitags vormittags"
 
   # Richtwert Kinder pro Termin (wird auf der Seite angezeigt).
   kinder_pro_termin: 25
 
-  # Wie viele Tage im Voraus muss mindestens angefragt werden?
+  # Wie viele Tage im Voraus muss mindestens angefragt werden? Frühere Termine werden ausgeblendet.
   vorlauf_tage: 21
-
-  # Wie viele Monate in die Zukunft kann man anfragen?
-  monate_im_voraus: 6
 
 exclude:
   - README.md

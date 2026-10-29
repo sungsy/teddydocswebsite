@@ -84,7 +84,7 @@ layout: default
       wir bestätigen sie per E-Mail.
     </p>
     <ul class="fakten">
-      <li>Freitags: {{ site.buchung.slots | map: "name" | join: " oder " }}</li>
+      <li>{{ site.buchung.zeiten_hinweis }}</li>
       <li>ca. {{ site.buchung.kinder_pro_termin }} Kinder pro Termin</li>
       <li>Teilnahme kostenfrei</li>
     </ul>
@@ -189,7 +189,7 @@ layout: default
       </details>
       <details>
         <summary>Wann finden die Termine statt?</summary>
-        <p>Immer freitags – entweder von 8:30 bis 10:30 Uhr oder von 10:30 bis 12:30 Uhr.</p>
+        <p>Alle Tage und Uhrzeiten, die wir anbieten, findet ihr oben im <a href="#termin">Kalender</a>.</p>
       </details>
       <details>
         <summary>Wo findet die Teddy-Klinik statt?</summary>

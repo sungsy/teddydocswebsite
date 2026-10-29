@@ -6,7 +6,7 @@ Anfragen landen in einer Google-Tabelle und kommen per Mail mit den Knöpfen **B
 ```
 Webseite (GitHub Pages)  ──Anfrage──▶  Google Apps Script  ──▶  Google-Tabelle + Mail an euch
         ▲                                     │
-        └────── belegte Termine ◀─────────────┘   Klick auf „Bestätigen“ in der Mail
+        └── angebotene + belegte Termine ◀────┘   Klick auf „Bestätigen“ in der Mail
                                                   → Termin belegt (+ Eintrag im Google Kalender)
 ```
 
@@ -22,7 +22,7 @@ Alles im **Gmail-Team-Konto** der Teddy-Docs machen – dann laufen Tabelle, Mai
 4. Oben in der Funktionsauswahl **`einrichten`** wählen und auf **Ausführen** klicken.
    Google fragt nach Berechtigungen → Konto wählen → „Erweitert“ → „Zu … wechseln (unsicher)“ → **Zulassen**.
    (Die Warnung kommt, weil das Skript nicht von Google geprüft ist – es ist euer eigenes.)
-   Danach hat die Tabelle ein Blatt „Anfragen“ mit Kopfzeile.
+   Danach hat die Tabelle die Blätter „Anfragen“ und „Termine“ mit Kopfzeile.
 
 ### 2. Als Web-App bereitstellen
 
@@ -46,8 +46,8 @@ Alles im **Gmail-Team-Konto** der Teddy-Docs machen – dann laufen Tabelle, Mai
 
 - **Logo:** `assets/img/logo.png` ersetzen (gleicher Dateiname).
 - **Farben:** ganz oben in `assets/css/style.css`.
-- **Zeitfenster:** aktuell 8:30–10:30 und 10:30–12:30 Uhr. Bei Änderungen an zwei Stellen anpassen: `slots` in `_config.yml` (Webseite) und `zeitfenster` im Skript (Tabelle + Kalendereintrag) – `id` und `name` müssen gleich sein. Danach im Skript `einrichten` erneut ausführen, damit die Auswahlliste in der Tabelle stimmt.
-- **Antwort-Vorlagen:** Treffpunkt und Grußformel stehen im Skript oben unter `treffpunkt` und `gruss`. Die Texte selbst in der Funktion `antwortLinks_`.
+- **Termine:** werden nicht hier, sondern im Blatt **„Termine“** der Google-Tabelle gepflegt (siehe „Im Alltag“). Der Satz bei den Eckdaten über dem Kalender („Meist freitags vormittags“) steht in `_config.yml` unter `zeiten_hinweis`.
+- **Antwort-Vorlagen:** Treffpunkt und Grußformel stehen im Skript oben unter `treffpunkt` und `gruss`. Die Texte selbst in der Funktion `antwortVorlagen_`.
 - **Kinder pro Termin / Vorlauf:** `kinder_pro_termin` (Richtwert, aktuell ca. 25) und `vorlauf_tage` (aktuell 21 = 3 Wochen) in `_config.yml`.
 - **Impressum & Datenschutz:** Platzhalter in `impressum.md` und `datenschutz.md` ausfüllen.
 
@@ -55,10 +55,12 @@ Alles im **Gmail-Team-Konto** der Teddy-Docs machen – dann laufen Tabelle, Mai
 
 | Was | Wie |
 | --- | --- |
+| Termine anbieten | Im Blatt **„Termine“** pro Zeitfenster eine Zeile: *Datum* (z. B. `14.11.2026`), *Von* (`8:30`), *Bis* (`10:30`). Zwei Zeitfenster am selben Tag = zwei Zeilen. Jeder Wochentag und jede Uhrzeit ist möglich. Nur diese Termine sind auf der Webseite wählbar – Termine, die näher als `vorlauf_tage` liegen, und vergangene werden automatisch ausgeblendet. |
+| Angebot zurückziehen | Zeile im Blatt „Termine“ löschen. Schon eingegangene Anfragen bleiben im Blatt „Anfragen“ erhalten. |
 | Neue Anfrage | Kommt per Mail. Auf **✓ Termin bestätigen & blocken** klicken und auf der Seite noch einmal bestätigen. Danach ist der Termin auf der Webseite belegt und steht in eurem Google Kalender. |
-| Der Einrichtung antworten | Nach dem Bestätigen/Ablehnen erscheint die fertige Mail (Termin, Ort, Hinweise) direkt auf der Seite – bei Bedarf anpassen und auf **Mail senden** klicken. Sie geht vom Team-Konto raus. Wer sie später schicken will, öffnet einfach den Link aus der Anfrage-Mail noch einmal. |
+| Der Einrichtung antworten | Nach dem Bestätigen/Ablehnen legt das Skript die fertige Mail (Termin, Ort, Hinweise) als **Entwurf in Gmail** an. Auf **✉ Mail in Gmail öffnen** klicken, dort bei Bedarf Text, Anhänge oder CC anpassen und senden. Wer sie nicht gleich schickt, findet sie später unter **Entwürfe**. Öffnet man den Link aus der Anfrage-Mail noch einmal, kann man mit **✉ Mail-Entwurf erstellen** einen neuen Entwurf anlegen. |
 | Anfrage ablehnen | In der Mail auf **✕ Ablehnen** klicken. Der Termin ist dann wieder frei. |
-| Termin sperren (Ferien, Prüfungen …) | In der Tabelle eine neue Zeile: Spalte *Termin* = Datum, *Zeitfenster* = `8:30–10:30 Uhr`, `10:30–12:30 Uhr` oder `ganztägig` (Auswahlliste), *Status* = `gesperrt`. |
+| Termin sperren, ohne ihn zu löschen | Im Blatt „Anfragen“ eine neue Zeile: Spalte *Termin* = Datum, *Zeitfenster* = z. B. `8:30–10:30 Uhr` oder `ganztägig`, *Status* = `gesperrt`. Der Termin erscheint dann als „belegt“. |
 | Termin nachträglich freigeben | In der Tabelle den Status auf `abgelehnt` setzen oder die Zeile löschen. |
 | Überblick | Die Google-Tabelle zeigt alle Anfragen mit Status. |
 | Kontaktformular (Mitmachen, Unterstützung, Sonstiges) | Kommt als normale Mail. Einfach antworten – die Antwort geht direkt an die Person. |
