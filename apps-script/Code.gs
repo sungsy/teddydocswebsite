@@ -33,7 +33,7 @@ const EINSTELLUNGEN = {
   // Plätze pro Einsatz, wenn im Blatt „Einsätze“ in der Spalte „Plätze“ nichts steht.
   plaetzeStandard: 8,
   // Bis wie viele Tage vor dem Einsatz kann man sich selbst abmelden? 0 = bis zum Einsatztag.
-  abmeldenBisTageVorher: 2,
+  abmeldenBisTageVorher: 7,
   // Bestätigter Kita-Termin → automatisch eine Zeile im Blatt „Einsätze“ anlegen?
   einsatzBeiBestaetigung: true,
   // Bei jeder An- und Abmeldung eine kurze Info-Mail an euch?
@@ -113,7 +113,7 @@ function doGet(e) {
   if (p.abmelden) return abmeldeSeite_(p);
   if (p.id) return aktionsSeite_(p);
   if (p.typ === 'einsaetze') {
-    return json_({ einsaetze: einsaetzeOeffentlich_(), abmeldenBisTageVorher: EINSTELLUNGEN.abmeldenBisTageVorher });
+    return json_({ einsaetze: einsaetzeOeffentlich_() });
   }
   return json_(Object.assign({ termine: termine_() }, belegung_()));
 }

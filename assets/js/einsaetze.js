@@ -14,7 +14,6 @@
   const el = {
     tage: $('einsatz-tage'),
     hinweis: $('einsatz-hinweis'),
-    frist: $('abmelde-frist'),
     form: $('einsatz-form'),
     termin: $('gewaehlter-einsatz'),
     terminFehler: $('einsatz-fehler'),
@@ -120,9 +119,6 @@
     }
   };
 
-  const fristText = (n) => (n === 0 ? 'Abmelden bis zum Einsatztag'
-    : n === 1 ? 'Abmelden bis 1 Tag vorher' : `Abmelden bis ${n} Tage vorher`);
-
   const einsaetzeLaden = async () => {
     el.hinweis.textContent = 'Einsätze werden geladen …';
     try {
@@ -133,10 +129,6 @@
       einsaetze = daten.einsaetze;
       laden = 'ok';
       el.hinweis.textContent = '';
-      if (Number.isFinite(daten.abmeldenBisTageVorher)) {
-        el.frist.textContent = fristText(daten.abmeldenBisTageVorher);
-        el.frist.hidden = false;
-      }
       if (auswahl) {
         auswahl = einsaetze.find((e) => key(e) === key(auswahl) && frei(e) > 0 && !eigene.has(key(e))) || null;
         zeigeAuswahl();
