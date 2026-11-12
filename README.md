@@ -2,6 +2,7 @@
 
 Statische Webseite (Jekyll, gehostet auf GitHub Pages) mit Terminkalender für Kindergärten und Schulklassen.
 Anfragen landen in einer Google-Tabelle und kommen per Mail mit den Knöpfen **Bestätigen** und **Ablehnen** ins Gmail-Postfach.
+Dazu gibt es eine interne Seite **`/einsaetze/`**, auf der sich Studierende für Einsätze eintragen (siehe [Einsätze für Studierende](#einsätze-für-studierende)).
 
 ```
 Webseite (GitHub Pages)  ──Anfrage──▶  Google Apps Script  ──▶  Google-Tabelle + Mail an euch
@@ -73,11 +74,35 @@ Wer das nicht möchte, setzt im Skript `angefragtSperrt: false`.
 **Spamschutz:** Die E-Mail-Adresse steht nicht im Klartext auf der Seite. Beide Formulare haben ein unsichtbares Feld für Bots
 und verwerfen Einsendungen, die schneller als 3 Sekunden nach dem Laden der Seite abgeschickt werden.
 
+## Einsätze für Studierende
+
+Unter `https://sungsy.github.io/teddydocswebsite/einsaetze/` tragen sich Teddy-Docs für Einsätze ein.
+Die Seite ist **nirgends verlinkt**, steht nicht in der Sitemap und hat `noindex`, Google nimmt sie also nicht auf.
+Den Link verteilt ihr selbst, z. B. in der WhatsApp-Gruppe. Wer den Link hat, kann sich eintragen. Ein echter Zugangsschutz ist das nicht.
+
+Auf der Seite stehen nur Datum, Uhrzeit, Hinweis und „3 von 8 Plätzen frei“, **keine Namen**.
+
+**Einmalig nach dem Update:** Den neuen `Code.gs` ins Apps Script kopieren, speichern, einmal **`einrichten`** ausführen
+(legt die Blätter „Einsätze“ und „Anmeldungen“ an) und unter **Bereitstellungen verwalten → Bearbeiten → Neue Version** veröffentlichen.
+
+| Was | Wie |
+| --- | --- |
+| Einsatz anlegen | Im Blatt **„Einsätze“** eine Zeile: *Datum*, *Von*, *Bis*, *Plätze* (leer = Standard, aktuell 8), *Hinweis* (erscheint auf der Seite, z. B. „Treffpunkt 8:00 am Haupteingang“), *Intern* (nur für euch). |
+| Automatisch bei Kita-Bestätigung | Wenn ihr eine Kita-Anfrage bestätigt, legt das Skript den Einsatz selbst an. In *Intern* steht dann die Einrichtung. Plätze und Hinweis könnt ihr danach anpassen. Abschalten: im Skript `einsatzBeiBestaetigung: false`. |
+| Anmeldung | Ist sofort fest. Die Person bekommt eine Bestätigungsmail mit Abmelde-Link, ihr eine kurze Info-Mail mit Name, Mail und Handynummer (abschalten: `teamMailBeiAnmeldung: false`). Alle Anmeldungen stehen im Blatt **„Anmeldungen“**. |
+| Abmelden | Über den Link in der Mail, bis `abmeldenBisTageVorher` Tage vor dem Einsatz (aktuell 2). Danach muss die Person euch direkt Bescheid geben. Dann im Blatt „Anmeldungen“ den Status auf `abgemeldet` setzen. |
+| Jemanden von Hand eintragen | Zeile im Blatt „Anmeldungen“ mit *Einsatz* (Datum), *Zeitfenster* (z. B. `8:30–10:30 Uhr`) und Name. Jede Zeile, die nicht `abgemeldet` ist, belegt einen Platz. |
+| Einsatz absagen | Zeile im Blatt „Einsätze“ löschen. Die Angemeldeten bekommen **keine** automatische Nachricht, sagt ihnen in der WhatsApp-Gruppe Bescheid. |
+| Plätze ändern | Zahl in *Plätze* ändern. `0` = niemand kann sich mehr eintragen. Wird die Zahl kleiner als die Anmeldungen, bleiben alle eingetragen, der Einsatz zeigt dann „ausgebucht“. |
+
+Doppelte Anmeldungen mit derselben E-Mail-Adresse für denselben Einsatz werden abgelehnt.
+Vergangene Einsätze verschwinden von der Seite. Eintragen geht bis zum Einsatztag.
+
 ## Für später – daran denken
 
 **Noch offen**
 - **Datenschutzerklärung:** In `datenschutz.md` stehen noch Platzhalter (Rechtsgrundlage für die Übermittlung in die USA, Löschfrist). Ausfüllen und am besten von der Datenschutzbeauftragten der FAU prüfen lassen.
-- **Alte Anfragen löschen:** Die Datenschutzerklärung verspricht eine Löschfrist. Also regelmäßig, z. B. nach jedem Semester, alte Zeilen im Blatt „Anfragen“ löschen, ebenso die zugehörigen Mails und Entwürfe in Gmail.
+- **Alte Anfragen löschen:** Die Datenschutzerklärung verspricht eine Löschfrist. Also regelmäßig, z. B. nach jedem Semester, alte Zeilen in den Blättern „Anfragen“ und „Anmeldungen“ löschen, ebenso die zugehörigen Mails und Entwürfe in Gmail.
 - **Klausurenphase vorbei?** Den Text `keine_termine_text` in `_config.yml` wieder anpassen.
 
 **Wenn die Seite eine eigene Domain bekommt** (z. B. `teddydocs-bayreuth.de`)
@@ -90,8 +115,8 @@ und verwerfen Einsendungen, die schneller als 3 Sekunden nach dem Laden der Seit
 **Apps Script**
 - Nach jeder Code-Änderung **Bereitstellungen verwalten → Bearbeiten → Neue Version**, *nicht* „Neue Bereitstellung“. Eine neue Bereitstellung bekommt eine andere URL. Dann muss `apps_script_url` in `_config.yml` geändert werden, und die Bestätigen-/Ablehnen-Links in älteren Anfrage-Mails funktionieren nicht mehr, sobald die alte Bereitstellung archiviert wird.
 - Nutzt das Skript einen neuen Google-Dienst (z. B. Drive), muss man einmal im Editor eine Funktion ausführen (z. B. `einrichten`) und die neue Berechtigung zulassen. Sonst schlägt die Funktion fehl.
-- Prüfen, welche Version live ist: die Web-App-URL im Browser öffnen. Es sollte JSON mit `termine`, `belegt` und `angefragt` erscheinen.
-- Grenzen bei kostenlosen Gmail-Konten: ca. 100 Mails pro Tag über das Skript. Für Anfragen reicht das locker.
+- Prüfen, welche Version live ist: die Web-App-URL im Browser öffnen. Es sollte JSON mit `termine`, `belegt` und `angefragt` erscheinen. Mit `?typ=einsaetze` am Ende muss JSON mit `einsaetze` kommen. Sonst läuft noch die alte Version.
+- Grenzen bei kostenlosen Gmail-Konten: ca. 100 Mails pro Tag über das Skript. Jede Einsatz-Anmeldung kostet zwei (Bestätigung + Info an euch). Für normale Mengen reicht das locker. Wird es knapp, `teamMailBeiAnmeldung: false` setzen.
 
 **Übergabe an ein neues Team**
 - Tabelle, Skript, Kalender und Mails hängen alle am **Gmail-Team-Konto**. Bei einer Übergabe nur die Zugangsdaten zu diesem Konto und zum GitHub-Repository weitergeben. Keine Kopie der Tabelle anlegen, denn das Skript hängt an genau dieser Tabelle.

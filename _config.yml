@@ -37,6 +37,12 @@ buchung:
   # Wie viele Tage im Voraus muss mindestens angefragt werden? Frühere Termine werden ausgeblendet.
   vorlauf_tage: 7
 
+# Einsätze für Studierende: Seite /einsaetze/ (nicht verlinkt, nicht bei Google).
+# Die Einsätze selbst stehen im Blatt „Einsätze“ der Google-Tabelle – siehe README.md.
+einsaetze:
+  # Erscheint, wenn gerade keine Einsätze eingetragen sind.
+  keine_einsaetze_text: "Gerade sind keine Einsätze geplant. Schau bald wieder vorbei!"
+
 exclude:
   - README.md
   - apps-script

@@ -1,0 +1,96 @@
+---
+layout: default
+title: Einsätze für Teddy-Docs
+description: Interne Seite der Teddy-Docs Bayreuth – hier tragen sich Studierende für Einsätze ein.
+permalink: /einsaetze/
+# Nicht in der Sitemap und nicht bei Google. Die Seite ist auch nirgends verlinkt – den Link verteilt ihr selbst.
+sitemap: false
+noindex: true
+---
+<section class="abschnitt">
+  <div class="container">
+    <p class="dachzeile">Für Teddy-Docs</p>
+    <h1>Einsätze im Teddybärkrankenhaus</h1>
+    <p class="abschnitt-intro">
+      Hier kannst du dich für die nächsten Termine eintragen. Wähle einen Einsatz mit freien Plätzen und gib deine Daten an –
+      die Bestätigung kommt sofort per Mail. Namen stehen hier nicht, nur wie viele Plätze schon vergeben sind.
+    </p>
+    <ul class="fakten">
+      <li>Sofort fest eingetragen</li>
+      <li>Infos per WhatsApp</li>
+      <li id="abmelde-frist" hidden></li>
+    </ul>
+
+    <div class="buchung">
+      <div class="kalender einsatz-liste" id="einsaetze">
+        <div class="kalender-kopf">
+          <h3>Nächste Einsätze</h3>
+        </div>
+        <p class="kalender-hinweis" id="einsatz-hinweis" role="status"></p>
+        <ul class="tage" id="einsatz-tage"></ul>
+      </div>
+
+      <div class="formular-karte">
+        <form id="einsatz-form" class="formular">
+          <div class="auswahl" id="auswahl">
+            <span class="auswahl-label">Dein Einsatz</span>
+            <p class="auswahl-text" id="gewaehlter-einsatz" tabindex="-1">Noch kein Einsatz gewählt – bitte links auswählen.</p>
+            <p class="feld-fehler" id="einsatz-fehler" hidden>Bitte wähle zuerst einen Einsatz aus.</p>
+          </div>
+
+          <div class="feld">
+            <label for="s-name">Vor- und Nachname</label>
+            <input id="s-name" name="name" required autocomplete="name">
+          </div>
+
+          <div class="feld-reihe">
+            <div class="feld">
+              <label for="s-email">E-Mail</label>
+              <input id="s-email" name="email" type="email" required autocomplete="email" placeholder="am besten deine Uni-Mail">
+            </div>
+            <div class="feld">
+              <label for="s-telefon">Handynummer <span class="optional">(für WhatsApp)</span></label>
+              <input id="s-telefon" name="telefon" type="tel" required autocomplete="tel" inputmode="tel"
+                     minlength="6" placeholder="z. B. 0171 1234567">
+            </div>
+          </div>
+
+          <div class="feld feld-kurz">
+            <label for="s-semester">Semester <span class="optional">(optional)</span></label>
+            <input id="s-semester" name="semester" inputmode="numeric" placeholder="z. B. 5">
+          </div>
+
+          <div class="honig" aria-hidden="true">
+            <label>Bitte leer lassen <input name="botcheck" tabindex="-1" autocomplete="off"></label>
+          </div>
+
+          <label class="einwilligung">
+            <input type="checkbox" name="datenschutz" required>
+            <span>Ich bin einverstanden, dass meine Angaben zur Organisation der Einsätze gespeichert werden und
+              ihr mich unter meiner Handynummer per WhatsApp kontaktiert.
+              Mehr dazu in der <a href="{{ '/datenschutz/' | relative_url }}">Datenschutzerklärung</a>.</span>
+          </label>
+
+          <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+          <button type="submit" class="knopf knopf-gross knopf-breit" id="absenden">Eintragen</button>
+        </form>
+
+        <div class="danke" id="einsatz-danke" tabindex="-1" hidden>
+          <div class="danke-icon">{% include icon.html name="brief" %}</div>
+          <h3>Du bist dabei!</h3>
+          <p>Du bist für <strong id="danke-einsatz"></strong> eingetragen. Die Bestätigung mit Abmelde-Link
+            ist unterwegs in dein Postfach.</p>
+          <button type="button" class="knopf knopf-hell" id="neue-anmeldung">Für weiteren Einsatz eintragen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  window.TEDDY_EINSAETZE = {
+    apps_script_url: {{ site.buchung.apps_script_url | jsonify }},
+    keine_einsaetze_text: {{ site.einsaetze.keine_einsaetze_text | jsonify }}
+  };
+</script>
+<script src="{{ '/assets/js/einsaetze.js' | relative_url }}" defer></script>

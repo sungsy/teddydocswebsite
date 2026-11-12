@@ -189,6 +189,18 @@ img, svg { max-width: 100%; display: block; }
 .slot-gewaehlt, .slot-gewaehlt:hover { background: var(--frei); border-color: var(--frei); color: #fff; }
 .slot-gewaehlt .slot-status, .slot-gewaehlt .slot-zeit { color: #fff; }
 
+/* ===== Einsätze (Studierende) ===== */
+.einsatz-liste .tag-slots { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.slot-hinweis { font-size: 0.85rem; color: var(--text-leise); }
+.plaetze { display: block; width: 100%; height: 6px; margin: 6px 0 2px; border-radius: 999px; background: rgba(61, 40, 23, 0.1); overflow: hidden; }
+.plaetze span { display: block; height: 100%; border-radius: inherit; background: var(--frei); }
+.slot-belegt .plaetze span { background: #c9bfb6; }
+.slot-dabei { background: var(--frei-hell); border-color: var(--frei); cursor: default; }
+.slot-dabei .slot-status { color: var(--frei); }
+.slot-gewaehlt .slot-hinweis { color: #fff; }
+.slot-gewaehlt .plaetze { background: rgba(255, 255, 255, 0.35); }
+.slot-gewaehlt .plaetze span { background: #fff; }
+
 /* ===== Formular ===== */
 .formular { display: grid; gap: 18px; }
 .auswahl { background: var(--hell); border-radius: 14px; padding: 14px 16px; border: 2px dashed var(--linie); }

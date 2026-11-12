@@ -6,7 +6,9 @@
  *   - liefert der Webseite die angebotenen (Blatt „Termine“) und belegten Termine (GET),
  *   - nimmt Anfragen entgegen, speichert sie in der Tabelle und schickt eine Mail (POST),
  *   - bestätigt oder lehnt Anfragen über die Links in der Mail ab,
- *   - leitet Nachrichten aus dem Kontaktformular per Mail weiter.
+ *   - leitet Nachrichten aus dem Kontaktformular per Mail weiter,
+ *   - verwaltet die Einsätze für Studierende (Seite /einsaetze/): Liste mit freien Plätzen (GET ?typ=einsaetze),
+ *     Anmeldung mit Bestätigungsmail (POST) und Abmeldung über den Link in der Mail.
  *
  * Einrichtung: siehe README.md im Repository.
  */
@@ -26,6 +28,16 @@ const EINSTELLUNGEN = {
   angefragtSperrt: true,
   // Bei Bestätigung einen Termin im Google Kalender anlegen?
   kalenderEintrag: true,
+
+  // ----- Einsätze für Studierende -----
+  // Plätze pro Einsatz, wenn im Blatt „Einsätze“ in der Spalte „Plätze“ nichts steht.
+  plaetzeStandard: 8,
+  // Bis wie viele Tage vor dem Einsatz kann man sich selbst abmelden? 0 = bis zum Einsatztag.
+  abmeldenBisTageVorher: 2,
+  // Bestätigter Kita-Termin → automatisch eine Zeile im Blatt „Einsätze“ anlegen?
+  einsatzBeiBestaetigung: true,
+  // Bei jeder An- und Abmeldung eine kurze Info-Mail an euch?
+  teamMailBeiAnmeldung: true,
 };
 
 // Angebotene Termine: eine Zeile pro Zeitfenster (Datum, Von, Bis). Nur diese sind auf der Webseite wählbar.
@@ -38,6 +50,14 @@ const STATUS = { ANGEFRAGT: 'angefragt', BESTAETIGT: 'bestätigt', ABGELEHNT: 'a
 const GANZTAG = 'ganztag';
 const GANZTAG_NAME = 'ganztägig';
 const ANLIEGEN = ['Mitmachen', 'Unterstützung', 'Sonstiges'];
+
+// Einsätze für Studierende: eine Zeile pro Einsatz. „Hinweis“ steht auf der Seite, „Intern“ nicht.
+const BLATT_EINSAETZE = 'Einsätze';
+const EINSATZ_SPALTEN = ['Datum', 'Von', 'Bis', 'Plätze', 'Hinweis', 'Intern'];
+const BLATT_ANMELDUNGEN = 'Anmeldungen';
+const ANMELDUNG_SPALTEN = ['Eingang', 'Einsatz', 'Zeitfenster', 'Status', 'Name', 'E-Mail', 'Telefon', 'Semester',
+  'ID', 'Schlüssel'];
+const ANMELDE_STATUS = { ANGEMELDET: 'angemeldet', ABGEMELDET: 'abgemeldet' };
 // Formulare, die schneller abgeschickt werden, stammen fast sicher von Bots.
 const MIN_AUSFUELLZEIT_MS = 3000;
 const WOCHENTAGE = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
@@ -66,13 +86,35 @@ function einrichten() {
   termine.getRange(2, 1, terminZeilen, 1).setNumberFormat('dd.MM.yyyy')
     .setDataValidation(SpreadsheetApp.newDataValidation().requireDate().setAllowInvalid(false).build());
   termine.getRange(2, 2, terminZeilen, 2).setNumberFormat('HH:mm');
+
+  const einsaetze = ss.getSheetByName(BLATT_EINSAETZE) || ss.insertSheet(BLATT_EINSAETZE);
+  einsaetze.getRange(1, 1, 1, EINSATZ_SPALTEN.length).setValues([EINSATZ_SPALTEN]).setFontWeight('bold');
+  einsaetze.setFrozenRows(1);
+  const einsatzZeilen = einsaetze.getMaxRows() - 1;
+  einsaetze.getRange(2, 1, einsatzZeilen, 1).setNumberFormat('dd.MM.yyyy')
+    .setDataValidation(SpreadsheetApp.newDataValidation().requireDate().setAllowInvalid(false).build());
+  einsaetze.getRange(2, 2, einsatzZeilen, 2).setNumberFormat('HH:mm');
+  einsaetze.getRange(2, 4, einsatzZeilen, 1).setNumberFormat('0');
+
+  const anmeldungen = ss.getSheetByName(BLATT_ANMELDUNGEN) || ss.insertSheet(BLATT_ANMELDUNGEN);
+  anmeldungen.getRange(1, 1, 1, ANMELDUNG_SPALTEN.length).setValues([ANMELDUNG_SPALTEN]).setFontWeight('bold');
+  anmeldungen.setFrozenRows(1);
+  const anmeldeZeilen = anmeldungen.getMaxRows() - 1;
+  anmeldungen.getRange(2, 1, anmeldeZeilen, 1).setNumberFormat('dd.MM.yyyy HH:mm');
+  anmeldungen.getRange(2, 2, anmeldeZeilen, 1).setNumberFormat('dd.MM.yyyy');
+  anmeldungen.getRange(2, 4, anmeldeZeilen, 1).setDataValidation(liste(Object.values(ANMELDE_STATUS)));
+  anmeldungen.hideColumns(9, 2);
 }
 
 // ===== Web-App =====
 
 function doGet(e) {
   const p = (e && e.parameter) || {};
+  if (p.abmelden) return abmeldeSeite_(p);
   if (p.id) return aktionsSeite_(p);
+  if (p.typ === 'einsaetze') {
+    return json_({ einsaetze: einsaetzeOeffentlich_(), abmeldenBisTageVorher: EINSTELLUNGEN.abmeldenBisTageVorher });
+  }
   return json_(Object.assign({ termine: termine_() }, belegung_()));
 }
 
@@ -82,6 +124,7 @@ function doPost(e) {
     // Spam still verwerfen: verstecktes Feld ausgefüllt oder zu schnell abgeschickt.
     if (d.botcheck || !(Number(d.dauer) >= MIN_AUSFUELLZEIT_MS)) return json_({ ok: true });
     if (d.typ === 'kontakt') return kontaktNachricht_(d);
+    if (d.typ === 'einsatz') return einsatzAnmelden_(d);
 
     const anfrage = {
       datum: String(d.datum || ''),
@@ -158,7 +201,15 @@ function aktionAusfuehren(id, schluessel, aktion) {
       }
       blatt_().getRange(z.zeile, 4).setValue(STATUS.BESTAETIGT);
       if (EINSTELLUNGEN.kalenderEintrag) kalenderEintragen_(z);
-      return { ok: true, status: STATUS.BESTAETIGT };
+      let einsatz = false;
+      if (EINSTELLUNGEN.einsatzBeiBestaetigung) {
+        try {
+          einsatz = einsatzAnlegen_(z);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      return { ok: true, status: STATUS.BESTAETIGT, einsatz };
     }
     if (aktion === 'ablehnen') {
       blatt_().getRange(z.zeile, 4).setValue(STATUS.ABGELEHNT);
@@ -408,6 +459,343 @@ function kontaktNachricht_(d) {
   return json_({ ok: true });
 }
 
+// ===== Einsätze für Studierende =====
+
+function einsaetzeBlatt_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss.getSheetByName(BLATT_EINSAETZE)) einrichten();
+  return ss.getSheetByName(BLATT_EINSAETZE);
+}
+
+function anmeldungenBlatt_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss.getSheetByName(BLATT_ANMELDUNGEN)) einrichten();
+  return ss.getSheetByName(BLATT_ANMELDUNGEN);
+}
+
+/** Leer = Standardwert, 0 = keine Anmeldung möglich. */
+function plaetze_(wert) {
+  const n = parseInt(wert, 10);
+  return Number.isFinite(n) && n >= 0 ? n : EINSTELLUNGEN.plaetzeStandard;
+}
+
+/** Einsätze ab heute aus dem Blatt „Einsätze“, sortiert: [{ datum, id, name, plaetze, hinweis, intern }]. */
+function einsaetze_() {
+  const blatt = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BLATT_EINSAETZE);
+  if (!blatt || blatt.getLastRow() < 2) return [];
+  const bereich = blatt.getRange(2, 1, blatt.getLastRow() - 1, EINSATZ_SPALTEN.length);
+  const anzeige = bereich.getDisplayValues(); // Uhrzeiten als Text, siehe termine_()
+  const heute = Utilities.formatDate(new Date(), EINSTELLUNGEN.zeitzone, 'yyyy-MM-dd');
+  const gesehen = new Set();
+  return bereich.getValues()
+    .map((r, i) => ({
+      datum: datumText_(r[0]),
+      slot: slot_(anzeige[i][1], anzeige[i][2]),
+      plaetze: plaetze_(r[3]),
+      hinweis: String(r[4] || '').trim(),
+      intern: String(r[5] || '').trim(),
+    }))
+    .filter((t) => t.datum >= heute && t.slot && !gesehen.has(t.datum + t.slot.id) && gesehen.add(t.datum + t.slot.id))
+    .sort((a, b) => (a.datum + a.slot.id).localeCompare(b.datum + b.slot.id))
+    .map((t) => ({ datum: t.datum, id: t.slot.id, name: t.slot.name, plaetze: t.plaetze, hinweis: t.hinweis, intern: t.intern }));
+}
+
+function anmeldungen_() {
+  const blatt = anmeldungenBlatt_();
+  const n = blatt.getLastRow() - 1;
+  if (n < 1) return [];
+  return blatt.getRange(2, 1, n, ANMELDUNG_SPALTEN.length).getValues().map((r, i) => ({
+    zeile: i + 2,
+    datum: datumText_(r[1]),
+    zeitfenster: slotId_(r[2]),
+    status: String(r[3]).trim().toLowerCase(),
+    name: String(r[4]),
+    email: String(r[5]).trim(),
+    telefon: String(r[6]),
+    semester: String(r[7]),
+    id: String(r[8]),
+    schluessel: String(r[9]),
+  })).filter((z) => z.datum && z.zeitfenster);
+}
+
+/** Wer nicht abgemeldet ist, belegt einen Platz – auch von Hand eingetragene Zeilen ohne Status. */
+function aktiveAnmeldungen_(alle, datum, zeitfenster) {
+  return alle.filter((z) => z.datum === datum && z.zeitfenster === zeitfenster && z.status !== ANMELDE_STATUS.ABGEMELDET);
+}
+
+/** Für die Webseite: nur Zahlen, keine Namen. */
+function einsaetzeOeffentlich_() {
+  const alle = anmeldungen_();
+  return einsaetze_().map((t) => ({
+    datum: t.datum,
+    id: t.id,
+    name: t.name,
+    plaetze: t.plaetze,
+    belegt: aktiveAnmeldungen_(alle, t.datum, t.id).length,
+    hinweis: t.hinweis,
+  }));
+}
+
+function einsatzAnmelden_(d) {
+  const a = {
+    datum: String(d.datum || ''),
+    zeitfenster: String(d.zeitfenster || ''),
+    name: text_(d.name),
+    email: text_(d.email),
+    telefon: text_(d.telefon, 40),
+    semester: text_(d.semester, 40),
+  };
+  const slot = slotAusId_(a.zeitfenster);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(a.datum) || !slot || !a.name
+    || (a.telefon.match(/\d/g) || []).length < 6 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a.email)) {
+    return json_({ ok: false, fehler: 'ungueltig' });
+  }
+
+  let einsatz;
+  let belegt;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    einsatz = einsaetze_().find((t) => t.datum === a.datum && t.id === slot.id);
+    if (!einsatz) return json_({ ok: false, fehler: 'nicht_angeboten' });
+    const aktiv = aktiveAnmeldungen_(anmeldungen_(), a.datum, slot.id);
+    if (aktiv.some((z) => z.email.toLowerCase() === a.email.toLowerCase())) {
+      return json_({ ok: false, fehler: 'doppelt' });
+    }
+    if (aktiv.length >= einsatz.plaetze) return json_({ ok: false, fehler: 'voll' });
+
+    a.id = Utilities.getUuid();
+    a.schluessel = Utilities.getUuid().replace(/-/g, '');
+    const blatt = anmeldungenBlatt_();
+    blatt.getRange(blatt.getLastRow() + 1, 1, 1, ANMELDUNG_SPALTEN.length).setValues([[
+      new Date(),
+      Utilities.parseDate(a.datum, EINSTELLUNGEN.zeitzone, 'yyyy-MM-dd'),
+      slot.name,
+      ANMELDE_STATUS.ANGEMELDET,
+      zelle_(a.name),
+      zelle_(a.email),
+      zelle_(a.telefon),
+      zelle_(a.semester),
+      a.id,
+      a.schluessel,
+    ]]);
+    SpreadsheetApp.flush();
+    belegt = aktiv.length + 1;
+  } finally {
+    lock.releaseLock();
+  }
+
+  // Die Anmeldung steht. Klappt eine Mail nicht, soll das die Anmeldung nicht als Fehler melden.
+  try {
+    anmeldeBestaetigung_(a, einsatz);
+  } catch (err) {
+    console.error(err);
+  }
+  if (EINSTELLUNGEN.teamMailBeiAnmeldung) {
+    try {
+      teamMailEinsatz_('Neue Anmeldung', a, einsatz, belegt);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  return json_({ ok: true, belegt, plaetze: einsatz.plaetze });
+}
+
+/** Tage von heute bis zum Einsatz (heute = 0). */
+function tageBis_(datum) {
+  const tag = (s) => { const [j, m, t] = s.split('-').map(Number); return Date.UTC(j, m - 1, t); };
+  const heute = Utilities.formatDate(new Date(), EINSTELLUNGEN.zeitzone, 'yyyy-MM-dd');
+  return Math.round((tag(datum) - tag(heute)) / 86400000);
+}
+
+function abmeldenMoeglich_(datum) {
+  return tageBis_(datum) >= Number(EINSTELLUNGEN.abmeldenBisTageVorher || 0);
+}
+
+function fristText_() {
+  const n = Number(EINSTELLUNGEN.abmeldenBisTageVorher || 0);
+  if (n === 0) return 'bis zum Einsatztag';
+  return n === 1 ? 'bis einen Tag vor dem Einsatz' : `bis ${n} Tage vor dem Einsatz`;
+}
+
+/** Wird von der Abmeldeseite (google.script.run) aufgerufen. */
+function einsatzAbmelden(id, schluessel) {
+  let z;
+  let belegt;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const alle = anmeldungen_();
+    z = alle.find((x) => x.id === String(id) && x.schluessel === String(schluessel) && id && schluessel);
+    if (!z) return { ok: false, meldung: 'Diese Anmeldung wurde nicht gefunden.' };
+    if (z.status === ANMELDE_STATUS.ABGEMELDET) return { ok: false, meldung: 'Du bist für diesen Einsatz schon abgemeldet.' };
+    if (!abmeldenMoeglich_(z.datum)) {
+      return { ok: false, meldung: `Abmelden geht hier nur ${fristText_()}. Sag bitte direkt dem Orga-Team Bescheid.` };
+    }
+    anmeldungenBlatt_().getRange(z.zeile, 4).setValue(ANMELDE_STATUS.ABGEMELDET);
+    belegt = aktiveAnmeldungen_(alle, z.datum, z.zeitfenster).length - 1;
+  } finally {
+    lock.releaseLock();
+  }
+  if (EINSTELLUNGEN.teamMailBeiAnmeldung) {
+    try {
+      const einsatz = einsaetze_().find((t) => t.datum === z.datum && t.id === z.zeitfenster);
+      teamMailEinsatz_('Abmeldung', z, einsatz || { datum: z.datum, id: z.zeitfenster }, belegt);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  return { ok: true };
+}
+
+/** Bestätigter Kita-Termin → Zeile im Blatt „Einsätze“ (falls es dort noch keine für dieses Zeitfenster gibt). */
+function einsatzAnlegen_(z) {
+  const fenster = slotAusId_(z.zeitfenster);
+  if (!fenster) return false;
+  if (einsaetze_().some((t) => t.datum === z.datum && t.id === fenster.id)) return false;
+  const blatt = einsaetzeBlatt_();
+  blatt.getRange(blatt.getLastRow() + 1, 1, 1, EINSATZ_SPALTEN.length).setValues([[
+    Utilities.parseDate(z.datum, EINSTELLUNGEN.zeitzone, 'yyyy-MM-dd'),
+    fenster.von,
+    fenster.bis,
+    '',
+    '',
+    zelle_(`${z.einrichtung} (${z.art}), ${z.kinder} Kinder`),
+  ]]);
+  return true;
+}
+
+function abmeldeLink_(a) {
+  return `${ScriptApp.getService().getUrl()}?abmelden=${encodeURIComponent(a.id)}&s=${a.schluessel}`;
+}
+
+function anmeldeBestaetigung_(a, einsatz) {
+  const termin = terminText_(a.datum, a.zeitfenster);
+  const link = abmeldeLink_(a);
+  const vorAbmelden = [
+    `Hallo ${a.name},`,
+    '',
+    'danke, dass du dabei bist! Du bist für folgenden Einsatz im Teddybärkrankenhaus eingetragen:',
+    '',
+    `Termin: ${termin}`,
+    `Ort: ${EINSTELLUNGEN.treffpunkt}`,
+    einsatz.hinweis ? `Hinweis: ${einsatz.hinweis}` : '',
+    '',
+    'Alles Weitere besprechen wir per WhatsApp – wir melden uns unter deiner Handynummer.',
+    '',
+    'Falls du doch nicht kannst, melde dich bitte ab, damit jemand anderes den Platz bekommt. ' +
+      `Das geht ${fristText_()}, danach sag bitte direkt dem Orga-Team Bescheid.`,
+  ].filter((z, i, arr) => z !== '' || arr[i - 1] !== '');
+  const text = [...vorAbmelden, '', `Abmelden: ${link}`, '', EINSTELLUNGEN.gruss].join('\n');
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#3d2817;max-width:560px">
+    <p style="white-space:pre-wrap;margin:0 0 16px">${esc_(vorAbmelden.join('\n'))}</p>
+    <p><a href="${link}" style="display:inline-block;padding:10px 20px;border-radius:999px;background:#b3332c;
+      color:#fff;font-weight:bold;text-decoration:none">Vom Einsatz abmelden</a></p>
+    <p style="white-space:pre-wrap;margin:16px 0 0">${esc_(EINSTELLUNGEN.gruss)}</p>
+  </div>`;
+  MailApp.sendEmail({
+    to: a.email,
+    name: 'Teddy-Docs Bayreuth',
+    subject: `Teddy-Docs: Du bist dabei – ${termin}`,
+    body: text,
+    htmlBody: html,
+  });
+}
+
+function teamMailEinsatz_(was, a, einsatz, belegt) {
+  const termin = terminText_(a.datum || einsatz.datum, a.zeitfenster || einsatz.id);
+  const plaetze = einsatz.plaetze != null ? `${belegt} von ${einsatz.plaetze}` : String(belegt);
+  const zeilen = [
+    ['Einsatz', termin],
+    ['Name', a.name],
+    ['E-Mail', a.email],
+    ['Telefon', a.telefon || '–'],
+    ['Semester', a.semester || '–'],
+    ['Belegt', plaetze],
+  ];
+  MailApp.sendEmail({
+    to: EINSTELLUNGEN.empfaenger || Session.getEffectiveUser().getEmail(),
+    replyTo: a.email,
+    name: 'Teddy-Docs Webseite',
+    subject: `Teddy-Docs Einsatz – ${was}: ${a.name}, ${termin} (${plaetze})`,
+    htmlBody: `
+      <div style="font-family:Arial,sans-serif;font-size:15px;color:#3d2817;max-width:560px">
+        <h2 style="margin:0 0 12px">${esc_(was)}</h2>
+        <table style="border-collapse:collapse;width:100%;margin-bottom:16px">
+          ${zeilen.map(([k, v]) => `<tr>
+            <td style="padding:6px 12px 6px 0;color:#6e5443;vertical-align:top;white-space:nowrap">${k}</td>
+            <td style="padding:6px 0">${esc_(v)}</td></tr>`).join('')}
+        </table>
+        <p style="color:#6e5443;font-size:13px">
+          <a href="${SpreadsheetApp.getActiveSpreadsheet().getUrl()}" style="color:#6e5443">Alle Anmeldungen in der Tabelle</a>
+        </p>
+      </div>`,
+  });
+}
+
+function abmeldeSeite_(p) {
+  const z = anmeldungen_().find((x) => p.abmelden && p.s && x.id === String(p.abmelden) && x.schluessel === String(p.s));
+  const vorlage = HtmlService.createTemplate(ABMELDE_HTML);
+  vorlage.z = z || null;
+  vorlage.termin = z ? terminText_(z.datum, z.zeitfenster) : '';
+  vorlage.moeglich = z ? abmeldenMoeglich_(z.datum) : false;
+  vorlage.frist = fristText_();
+  vorlage.idJson = jsonSicher_(String(p.abmelden || ''));
+  vorlage.sJson = jsonSicher_(String(p.s || ''));
+  return vorlage.evaluate()
+    .setTitle('Teddy-Docs – Abmelden')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+const ABMELDE_HTML = `<!doctype html>
+<html><head><meta charset="utf-8"><base target="_top">
+<style>
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#fff8f2;color:#3d2817;margin:0;padding:24px 16px}
+  .karte{max-width:600px;margin:0 auto;background:#fff;border-radius:20px;padding:24px;box-shadow:0 6px 24px rgba(61,40,23,.1)}
+  h1{font-size:22px;margin:0 0 16px}
+  dl{margin:0 0 20px} dt{color:#6e5443;font-size:13px;margin-top:10px} dd{margin:2px 0 0}
+  button{display:inline-block;font:inherit;font-weight:700;border:0;border-radius:999px;padding:12px 22px;
+    cursor:pointer;color:#fff;background:#b3332c;margin-top:4px}
+  button:disabled{opacity:.6;cursor:wait}
+  .meldung{font-weight:600;margin:16px 0 0}
+</style></head><body><div class="karte">
+<? if (!z) { ?>
+  <h1>Anmeldung nicht gefunden</h1><p>Der Link ist ungültig oder die Anmeldung wurde aus der Tabelle gelöscht.</p>
+<? } else { ?>
+  <h1><?= z.status === 'abgemeldet' ? 'Schon abgemeldet' : 'Vom Einsatz abmelden?' ?></h1>
+  <dl>
+    <dt>Einsatz</dt><dd><?= termin ?></dd>
+    <dt>Name</dt><dd><?= z.name ?></dd>
+  </dl>
+  <? if (z.status === 'abgemeldet') { ?>
+    <p>Du bist für diesen Einsatz nicht mehr eingetragen.</p>
+  <? } else if (!moeglich) { ?>
+    <p>Abmelden geht hier nur <?= frist ?>. Sag bitte direkt dem Orga-Team Bescheid, damit wir umplanen können.</p>
+  <? } else { ?>
+    <button id="los">Ja, abmelden</button>
+  <? } ?>
+  <p class="meldung" id="meldung"></p>
+  <script>
+    var los = document.getElementById('los');
+    if (los) los.addEventListener('click', function () {
+      los.disabled = true; los.textContent = 'Einen Moment …';
+      google.script.run
+        .withSuccessHandler(function (r) {
+          los.hidden = true;
+          document.getElementById('meldung').textContent = r.ok
+            ? 'Erledigt! Du bist abgemeldet, der Platz ist wieder frei. Danke fürs Bescheidsagen.'
+            : r.meldung;
+        })
+        .withFailureHandler(function (e) {
+          document.getElementById('meldung').textContent = 'Fehler: ' + e.message;
+          los.disabled = false; los.textContent = 'Nochmal versuchen';
+        })
+        .einsatzAbmelden(<?!= idJson ?>, <?!= sJson ?>);
+    });
+  </script>
+<? } ?>
+</div></body></html>`;
+
 // ===== Bestätigungsseite =====
 
 function aktionsSeite_(p) {
@@ -556,6 +944,7 @@ const SEITE_HTML = `<!doctype html>
           $('status').textContent = r.status;
           $('meldung').textContent = r.status === 'bestätigt'
             ? 'Erledigt! Der Termin ist jetzt auf der Webseite belegt.'
+              + (r.einsatz ? ' Studierende können sich ab sofort dafür eintragen (Blatt „Einsätze“).' : '')
             : 'Erledigt! Die Anfrage ist abgelehnt, der Termin ist wieder frei.';
           $('antwort').hidden = false;
           entwurfAnlegen();

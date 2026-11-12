@@ -34,6 +34,17 @@ Anbieter ist Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irla
 
 Wir löschen Ihre Daten, sobald sie für die Durchführung des Termins nicht mehr benötigt werden, spätestens [Zeitraum, z. B. 6 Monate] nach dem Termin.
 
+## Anmeldung für Einsätze (Studierende)
+
+Wenn Sie sich als Studierende:r über die Einsatzseite für einen Termin eintragen, verarbeiten wir Ihren Namen,
+Ihre E-Mail-Adresse, Ihre Handynummer, optional Ihr Semester sowie den gewählten Einsatz. Damit organisieren wir die Einsätze,
+schicken Ihnen eine Bestätigung mit Abmelde-Link und nehmen per WhatsApp Kontakt mit Ihnen auf.
+Rechtsgrundlage ist Ihre Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Auf der Seite selbst erscheint nur die Zahl der belegten Plätze, keine Namen.
+
+Die Angaben werden wie die Terminanfragen in einer Google-Tabelle gespeichert und per E-Mail (Gmail) verarbeitet (siehe oben).
+Für die Kommunikation per WhatsApp gelten zusätzlich die Datenschutzbestimmungen der WhatsApp Ireland Limited.
+Wir löschen die Angaben spätestens [Zeitraum, z. B. 6 Monate] nach dem Einsatz.
+
 ## Kontaktformular
 
 Wenn Sie uns über das Kontaktformular schreiben, verarbeiten wir Ihren Namen, Ihre E-Mail-Adresse, Ihr Anliegen und Ihre Nachricht,
